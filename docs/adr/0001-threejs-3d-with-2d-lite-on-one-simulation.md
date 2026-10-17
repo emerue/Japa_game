@@ -2,7 +2,7 @@
 
 The original spec chose PixiJS 2D cards and rejected 3D to fit the 3 MB budget. PRD v3 made an open world a P0 requirement, so we render the World in low-poly Three.js, with geometry generated in code and one CC0 character. A 2D top-down Canvas renderer reads the same world data and simulation, so devices without WebGL (including the dev Mac) keep full movement and interaction.
 
-**Status:** accepted on 17 Oct 2026, conditional on a half-day spike on the test phone (Infinix HOT 40i): one street block, ~20 buildings, a walking character, 5 NPCs, 30+ fps with shadows off. If it fails, the World is rendered as isometric Canvas2D instead, and the simulation and world data are unchanged.
+**Status:** accepted on 17 Oct 2026. The spike passed the same day (60 fps with shadows off; 55 fps with shadows on in the worst-case view). Original condition: a half-day spike on the test phone (Infinix HOT 40i): one street block, ~20 buildings, a walking character, 5 NPCs, 30+ fps with shadows off. If it fails, the World is rendered as isometric Canvas2D instead, and the simulation and world data are unchanged.
 
 ## Considered options
 

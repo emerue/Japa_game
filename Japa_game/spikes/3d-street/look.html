@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>JAPA look test</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #F4EBDD; }
+  canvas { display: block; }
+  #hud {
+    position: fixed; left: 8px; top: 8px; right: 8px; font-size: 11px;
+    font: 13px/1.35 ui-monospace, Menlo, monospace; color: #191B1E;
+    background: rgba(244, 235, 221, 0.85); padding: 6px 8px; border-radius: 8px;
+    white-space: pre-wrap; pointer-events: none;
+  }
+  #hud b { color: #C74742; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "../../vendor/three/three.module.min.js",
+  "three/addons/": "../../vendor/three/addons/"
+} }
+</script>
+</head>
+<body>
+<div id="hud">loading…</div>
+<script type="module" src="./look.js"></script>
+</body>
+</html>

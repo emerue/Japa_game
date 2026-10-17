@@ -13,7 +13,11 @@ Product direction                 Locked (PRD.md §0, Q1–Q31).
 Tech spec                         Reconciled with PRD v3; ADRs 0001–0003.
 3D test loop                      Working: Infinix HOT 40i over adb (WebGL2,
                                   Mali-G57, 60 fps on a trivial scene).
-3D performance spike              Not started (next).
+3D performance spike              Passed: 60 fps shadows off, 55 fps shadows
+                                  on (worst case). Characters, skin tones, face
+                                  lighting chosen (PRD §0, Q32–Q35).
+Camera angle                      Lower camera (~32°, 9 m) proposed; awaiting
+                                  @ikenna's yes before changing Q21.
 Engine                            Built for cards (Stage/Event/Meter/Archetype
                                   names, 4 meters). Needs renaming to the new
                                   glossary and the five Resources, action-based
@@ -21,6 +25,44 @@ Engine                            Built for cards (Stage/Event/Meter/Archetype
 27 events                         Written (UK Student, Fresh Graduate). To be
                                   re-cast as Events triggered in the World.
 Vertical slice                    Not started (scope in PRD §0).
+
+====================================================================
+SAT 17 OCT 2026 (afternoon): 3D spike and look tests
+====================================================================
+3D spike (Japa_game/spikes/3d-street/, Three.js r170 vendored in
+Japa_game/vendor/three/)
+- Ojuelegba-style junction, 20 buildings, 6 animated characters on the
+  Infinix HOT 40i. Follow camera: 60 fps either way. Whole junction on
+  screen at full resolution: 60 fps (shadows off), 55 fps with p95 frame
+  33.5 ms (shadows on). Gate passed; ADR 0001 accepted.
+- Two mistakes along the way, both fixed: the first camera framing showed
+  almost nothing (so the numbers didn't count), and adb dropped URL
+  params after "&" until the URL was quoted for the phone's shell.
+
+Look test (look.html), from @ikenna's feedback: "camera too far,
+characters very small, danfo doesn't look like a danfo, characters don't
+look human"
+- The 50° camera mostly shows tarmac and roofs in portrait. A lower,
+  closer camera (~32°, 9 m) puts the player in the lower-middle with the
+  street and shopfronts filling the frame, leaving the bottom strip for
+  controls. Buildings between camera and player fade. Vehicles must fade
+  too (a danfo blocked the view once).
+- Danfo rebuilt in code: two black stripes, window band, open sliding
+  door with seats, roof rack with luggage, bumpers, lights. Still needs a
+  rounded nose, a conductor and slogans; waiting on @ikenna's review.
+
+Characters (chars.html)
+- @ikenna downloaded RG Poly Cartoon City (free) and Quaternius Ultimate
+  Modular Men/Women. RG Poly's zip uses LZMA: macOS unzip and ditto
+  can't open it, bsdtar can.
+- Quaternius chosen: real proportions, plain-colour skin materials (easy
+  to recolour), 24 animations. RG Poly rejected (chibi, white skin baked
+  into the texture).
+- Seven warm skin tones, all used. Deep tones lost their faces under one
+  sun; fixed with a warm fill light, a back light, a skin glow that grows
+  with depth of tone, and dark glossy pupils. Eye whites still to add.
+- Found: the Suit model holds a pistol; some hairstyles don't fit Lagos.
+  Both to be removed or replaced in the slice.
 
 ====================================================================
 SAT 17 OCT 2026 (later): direction locked

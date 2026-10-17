@@ -62,6 +62,16 @@ This PRD replaces the earlier scenes-and-cards PRD (`docs/history/PRD_v1_scenes-
 | Q19 | Public landmarks are used freely. **Businesses use made-up names with familiar colour schemes.** Real brands appear only through paid sponsor deals later. |
 | Q20 | **@ikenna is the authenticity reviewer**, supplying or selecting references for each anchor landmark and approves each zone from a test-phone screenshot before it is final. Claude researches and drafts the rest. |
 
+### Look and feel, after the 3D spike (17 Oct 2026)
+
+| # | Decision |
+|---|---|
+| Q4 result | **The 3D spike passed** on the test phone: 20 buildings, a walking player and 5 NPCs ran at 60 fps (p95 frame 17.6 ms) with shadows off, and 55 fps with shadows on in the worst-case full-junction view. 3D is confirmed. Shadows are for capable phones only. |
+| Q32 | **Characters use the Quaternius Ultimate Modular Men and Women packs (CC0)** as the base: real human proportions, 24 shared animations. JAPA makes them Nigerian: recoloured outfits, ankara patterns generated in code, kaftan and agbada over the base body, and Nigerian hair and headwear (low cut, braids, afro puffs, gele). Weapons and hairstyles that don't fit Lagos are removed. RG Poly Cartoon City was rejected (chibi style, skin colour baked into a texture). Raw packs are not committed; the game ships one compressed male and one female base model plus a shared animation file. |
+| Q33 | **Seven skin tones, all used**, deepest to lightest: `#2A160D`, `#3A1F12`, `#4B2715`, `#5C311A`, `#6E3B1F`, `#83492A`, `#9A5A34`, all with warm red-brown undertones and a slight sheen. NPCs are spread across the range, with the deeper tones most common; the player picks their own tone. |
+| Q34 | **Faces must stay readable at every skin tone.** Characters get a warm fill light from the camera side and a soft back light; skin gets a warm inner glow that is stronger for deeper tones; pupils stay dark and glossy. Add eye whites in the slice so the deepest faces read in shared screenshots. Check every new character, outfit and lighting change on the deepest tone first. |
+| Q35 | **Portrait by default, landscape supported**, like Lagos Life. In landscape the camera shows a wider view of the street; controls and panels adapt. |
+
 ### Camera, controls and interaction (Q21–Q23)
 
 **Q21 — Camera and controls.** An elevated third-person camera follows the player, angled about 50° down and close enough to see expressions, nearby props and interactions on a 720px-wide screen.
