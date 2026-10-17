@@ -72,6 +72,19 @@ This PRD replaces the earlier scenes-and-cards PRD (`docs/history/PRD_v1_scenes-
 | Q34 | **Faces must stay readable at every skin tone.** Characters get a warm fill light from the camera side and a soft back light; skin gets a warm inner glow that is stronger for deeper tones; pupils stay dark and glossy. Add eye whites in the slice so the deepest faces read in shared screenshots. Check every new character, outfit and lighting change on the deepest tone first. |
 | Q35 | **Portrait by default, landscape supported**, like Lagos Life. In landscape the camera shows a wider view of the street; controls and panels adapt. |
 
+### Visual identity and shareable scenes (Q36, approved 17 Oct 2026)
+
+**"Danfo Yellow & Ink"**, JAPA's own look, drawn from Lagos street print culture. It must not look like a generic app template or like Lagos Life.
+- **Danfo stripes** (yellow with two black lines) are the signature motif on panel edges, the logo and progress bars.
+- **Signwriter lettering** for headings and buttons (a bold painted-sign display face); a clear, sturdy sans for reading.
+- **Sticker UI:** money, energy, costs and name tags are cut-out stickers with thick ink outlines and hard offset shadows, slightly tilted. No frosted glass, no soft generic cards.
+- **Choices** are big A/B/C buttons with the cost stamped on each; **speech** is a comic bubble with an ink outline.
+- **The JAPA Receipt is a POS thermal slip** (torn edge, monospace, a rubber stamp such as SCAMMED or SAVED, a one-line lesson in Nigerian English or pidgin, and a share code).
+- Colours: Danfo Yellow `#F2B705`, Ink `#191B1E`, Paper `#FFF8E7`, Stamp Red `#C74742`, Lagos Teal `#176B6B`.
+- Reference: `Japa_game/spikes/3d-street/style.html` and `docs/screenshots/2026-10-17/style-*.png`.
+
+**Every story scene is an ad-ready beat:** a clear setup, a punchline or emotional turn, one framed camera shot and a caption that works as a screenshot or a 10-second clip. Built-in share formats: the JAPA Receipt, "Can you spot the red flags?" challenges, and "Wetin you go choose?" dilemmas.
+
 ### Camera, controls and interaction (Q21–Q23)
 
 **Q21 — Camera and controls (revised 17 Oct 2026 after the look tests: the standard casual-game camera, user experience first).** The audience includes many non-gamers, so the camera must need no thought.
