@@ -25,7 +25,41 @@ Engine                            Built for cards (Stage/Event/Meter/Archetype
                                   time, PCG32, action log, replay(), kobo.
 27 events                         Written (UK Student, Fresh Graduate). To be
                                   re-cast as Events triggered in the World.
-Vertical slice                    Not started (scope in PRD §0).
+Vertical slice                    Playable end to end on the test phone
+                                  (index.html). Not yet: lite 2D mode,
+                                  compressed characters, share image, sound.
+
+====================================================================
+SAT 17 OCT 2026 (evening): vertical slice playable
+====================================================================
+Built (Japa_game/index.html; the old card game moved to cards.html)
+- src/sim/: new world simulation (pure, replayable): five Resources, time
+  by action, world-triggered Events, quests, receipt lines, endings.
+  src/content/slice.js holds the story. 28 tests pass, including a search
+  that reaches every ending.
+- src/world/: the zone as data (compound, street, Femi Net Cafe, Mercy
+  Pharmacy with Dr. Bayo upstairs, bus stop, danfos, skyline), painted
+  signboards drawn in code, Quaternius characters made Nigerian, the
+  standard follow camera with fades, floating joystick, collisions.
+- src/hud/: Danfo Yellow & Ink interface: stickers, quest strip, action
+  button, comic bubbles, A/B/C choices with stamped costs, the cracked
+  phone with a playing voice note, stamps, floating changes, the receipt.
+- Save/resume in localStorage (seed + actions, replayed on load).
+
+Played on the Infinix: wake-up → phone → landlord → street → cybercafe
+→ Dr. Bayo's office → receipt (SAVED). @ikenna played it on the phone at
+the same time (checked the agent at the cybercafe).
+
+Fixed during the play-through: landlord facing the wrong way, his
+hair shape (now hidden), opening line stuck after a conversation, office
+camera cropping the room, red-flag counter overlapping the quest strip,
+exit prompt at the spawn point, wrong quest shown in the office, nothing
+marking what you can use (added bobbing yellow markers), buildings
+behind the player filling the bottom of the screen (corridor fade).
+
+Known gaps: 2D lite mode (Q25); characters are raw 3 MB glTFs (18 MB,
+far over budget; git-ignored); fonts load from Google; share sends text,
+not an image; no sound; furniture has no collisions; eye whites.
 
 ====================================================================
 SAT 17 OCT 2026 (afternoon): 3D spike and look tests

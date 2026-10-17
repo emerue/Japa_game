@@ -2,3 +2,5 @@ node_modules
 dist
 # Raw third-party character packs used for look tests; the game ships compressed versions
 spikes/3d-street/assets/chars/
+# Raw character glTFs (~3 MB each) stay out of git until compressed GLBs replace them
+assets/characters/*.gltf

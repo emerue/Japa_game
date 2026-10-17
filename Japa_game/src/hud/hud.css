@@ -1,0 +1,149 @@
+/* JAPA interface: "Danfo Yellow & Ink" (PRD §0 Q36).
+   Lagos street print culture: danfo stripes, signwriter lettering, window
+   stickers with hard shadows, POS receipts. No frosted glass, no generic cards. */
+:root {
+  --ink: #191B1E; --danfo: #F2B705; --paper: #FFF8E7; --red: #C74742; --teal: #176B6B;
+  --sign: 'Bungee', Impact, system-ui, sans-serif;
+  --body: 'Archivo', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+html, body { margin: 0; height: 100%; overflow: hidden; background: #F2C99B; touch-action: none;
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+canvas { display: block; }
+#hud { position: fixed; inset: 0; pointer-events: none; font-family: var(--body); color: var(--ink); }
+#hud [data-ui] { pointer-events: auto; }
+
+.stripes { background:
+  linear-gradient(var(--danfo), var(--danfo)) 0 0 / 100% 6px no-repeat,
+  linear-gradient(var(--ink), var(--ink)) 0 6px / 100% 3px no-repeat,
+  linear-gradient(var(--danfo), var(--danfo)) 0 9px / 100% 3px no-repeat,
+  linear-gradient(var(--ink), var(--ink)) 0 12px / 100% 3px no-repeat; }
+.sticker { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px 4px; border: 2.5px solid var(--ink);
+  border-radius: 10px; box-shadow: 3px 3px 0 var(--ink); font: 800 16px var(--body); color: var(--ink); background: #fff;
+  transition: transform .2s; }
+
+/* top bar */
+.topbar { position: absolute; left: 12px; right: 12px; top: calc(12px + env(safe-area-inset-top)); display: flex; gap: 8px; flex-wrap: wrap; }
+.topbar .money { background: var(--danfo); transform: rotate(-2deg); }
+.topbar .time { background: var(--ink); color: var(--danfo); box-shadow: 3px 3px 0 var(--danfo); font: 400 13px var(--sign); transform: rotate(1.5deg); }
+.topbar .bump { animation: bump .45s; }
+@keyframes bump { 40% { transform: scale(1.18) rotate(-3deg); } }
+
+/* quest strip */
+.quest { position: absolute; left: 12px; top: calc(62px + env(safe-area-inset-top)); max-width: 80vw; background: var(--ink); color: #fff;
+  border-radius: 10px; padding: 9px 12px 8px 22px; font: 700 14px/1.25 var(--body); box-shadow: 3px 3px 0 var(--danfo); transition: opacity .3s; }
+.quest::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 6px;
+  background: repeating-linear-gradient(var(--danfo) 0 5px, var(--ink) 5px 7px); border-radius: 2px; }
+.quest b { color: var(--danfo); font: 400 11px var(--sign); display: block; margin-bottom: 2px; }
+.quest.new { animation: questIn .6s; }
+@keyframes questIn { 0% { transform: translateX(-110%); } 70% { transform: translateX(4%); } }
+.flags { position: absolute; left: 12px; top: calc(128px + env(safe-area-inset-top)); background: var(--red); color: #fff;
+  font: 400 13px var(--sign); transform: rotate(2deg); box-shadow: 3px 3px 0 var(--ink); }
+
+/* floating joystick: rests bottom-left, jumps to the thumb */
+.joy { position: absolute; left: 26px; bottom: calc(30px + env(safe-area-inset-bottom)); width: 120px; height: 120px; border-radius: 50%;
+  border: 3px dashed rgba(25,27,30,.5); background: rgba(255,248,231,.22); transition: opacity .2s; }
+.joy.active { bottom: auto; margin: -60px 0 0 -60px; border-style: solid; background: rgba(255,248,231,.32); }
+.joy .knob { position: absolute; left: 32px; top: 32px; width: 50px; height: 50px; border-radius: 50%;
+  background: var(--danfo); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); }
+.joy.hidden, .act.hidden { opacity: 0; }
+
+/* the one action button: verb + icon, and who/what it's for */
+.act { position: absolute; right: 22px; bottom: calc(40px + env(safe-area-inset-bottom)); width: 96px; height: 96px; border-radius: 50%;
+  background: var(--danfo); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); display: grid; place-items: center;
+  text-align: center; font: 400 15px/1 var(--sign); color: var(--ink); transition: opacity .2s, transform .15s; }
+.act span { display: block; font-size: 28px; margin-bottom: 3px; }
+.act:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.act .who { position: absolute; bottom: 104px; right: 0; white-space: nowrap; background: #fff; font: 800 13px var(--body);
+  padding: 3px 9px; border: 2px solid var(--ink); border-radius: 8px; box-shadow: 2px 2px 0 var(--ink); }
+
+/* speech bubble, anchored to a person */
+.bubble { position: absolute; transform: translate(-50%, -100%); width: max-content; max-width: min(270px, calc(100vw - 32px));
+  background: #fff; color: var(--ink); border: 2.5px solid var(--ink); border-radius: 16px; padding: 9px 13px;
+  font: 700 16px/1.3 var(--body); box-shadow: 3px 3px 0 var(--ink); animation: pop .25s; }
+.bubble::after { content: ''; position: absolute; left: var(--tail, 50%); bottom: -12px; margin-left: -9px; width: 16px; height: 16px;
+  background: #fff; border-right: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: rotate(45deg); }
+@keyframes pop { 0% { transform: translate(-50%, -100%) scale(.6); opacity: 0; } }
+
+/* choice panel */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); padding: 26px 14px calc(18px + env(safe-area-inset-bottom));
+  border-top: 3px solid var(--ink); animation: up .3s cubic-bezier(.2,1.3,.4,1); }
+@keyframes up { 0% { transform: translateY(100%); } }
+.sheet .who { position: absolute; top: -18px; left: 14px; background: var(--danfo); transform: rotate(-2deg); font: 400 14px var(--sign); }
+.choice { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff;
+  border: 2.5px solid var(--ink); border-radius: 12px; padding: 12px 12px 12px 44px; margin-top: 10px;
+  box-shadow: 4px 4px 0 var(--ink); font: 700 16px/1.25 var(--body); color: var(--ink); }
+.choice::before { content: attr(data-k); position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px;
+  border-radius: 6px; background: var(--ink); color: var(--danfo); font: 400 13px/24px var(--sign); text-align: center; }
+.choice:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.choice.off { opacity: .45; box-shadow: none; }
+.choice .why { display: block; font: 600 12px var(--body); color: var(--red); margin-top: 2px; }
+.tags { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.tag { font: 800 13px var(--body); padding: 2px 7px; border-radius: 6px; border: 2px solid currentColor; white-space: nowrap; transform: rotate(-3deg); }
+.tag.cost { color: var(--red); } .tag.gain { color: var(--teal); } .tag.time { color: #6B5B3E; }
+
+/* the phone: a cracked budget Android, group-chat first (PRD Q28) */
+.phone { position: absolute; left: 50%; top: calc(16px + env(safe-area-inset-top)); transform: translateX(-50%) rotate(-1.5deg); width: min(300px, 80vw);
+  background: var(--ink); border-radius: 26px; padding: 12px 10px 14px; box-shadow: 6px 6px 0 rgba(0,0,0,.35); animation: phoneIn .4s; }
+@keyframes phoneIn { 0% { transform: translate(-50%, 40%) rotate(8deg); opacity: 0; } }
+.phone .screen { position: relative; background: #ECE5D8; border-radius: 16px; overflow: hidden; padding: 0 0 10px; }
+.phone .crack { position: absolute; inset: 0; pointer-events: none; background:
+  linear-gradient(62deg, transparent 48%, rgba(255,255,255,.75) 49%, transparent 50%) 0 0 / 100% 100%,
+  linear-gradient(-28deg, transparent 58%, rgba(255,255,255,.6) 58.6%, transparent 59.3%) 0 0 / 100% 100%,
+  linear-gradient(140deg, transparent 70%, rgba(255,255,255,.5) 70.5%, transparent 71%) 0 0 / 100% 100%; }
+.phone .head { background: var(--teal); color: #fff; padding: 10px 12px; font: 400 13px var(--sign); display: flex; justify-content: space-between; }
+.phone .msg { margin: 8px 10px 0; padding: 7px 10px; background: #fff; border-radius: 10px; font: 600 14px/1.3 var(--body); max-width: 82%; }
+.phone .msg small { display: block; font: 800 11px var(--body); color: var(--teal); margin-bottom: 2px; }
+.phone .vn { display: flex; align-items: center; gap: 8px; }
+.phone .play { width: 34px; height: 34px; border-radius: 50%; background: var(--teal); color: #fff; display: grid; place-items: center; font-size: 15px; flex: none; }
+.phone .wave { display: flex; align-items: center; gap: 2px; height: 26px; }
+.phone .wave i { width: 3px; background: #8AA; border-radius: 2px; }
+.phone .wave.playing i { background: var(--teal); animation: wave .7s infinite alternate; }
+@keyframes wave { to { transform: scaleY(.4); } }
+.phone .transcript { font: 600 13px/1.35 var(--body); color: #333; margin-top: 6px; }
+
+/* stamps, captions, floating changes */
+.stamp { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%) rotate(-12deg); border: 5px solid var(--red); color: var(--red);
+  font: 400 34px/1 var(--sign); padding: 10px 14px 6px; border-radius: 10px; background: rgba(255,248,231,.85); animation: stamp .45s cubic-bezier(.3,1.6,.5,1); }
+.stamp.good { border-color: var(--teal); color: var(--teal); }
+@keyframes stamp { 0% { transform: translate(-50%, -50%) rotate(-12deg) scale(2.4); opacity: 0; } }
+.caption { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 40px); text-align: center;
+  background: var(--ink); color: #fff; font: 700 17px/1.3 var(--body); padding: 12px 16px; border-radius: 12px; box-shadow: 4px 4px 0 var(--danfo); animation: pop2 .35s; }
+.caption b { display: block; color: var(--danfo); font: 400 22px var(--sign); margin-bottom: 4px; }
+@keyframes pop2 { 0% { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+.float { position: absolute; transform: translate(-50%, -100%); font: 800 16px var(--body); padding: 3px 8px; border-radius: 8px;
+  border: 2.5px solid var(--ink); background: #fff; box-shadow: 2px 2px 0 var(--ink); animation: rise 1.8s forwards; white-space: nowrap; }
+.float.cost { color: var(--red); } .float.gain { color: var(--teal); }
+@keyframes rise { 0% { opacity: 0; margin-top: 10px; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; margin-top: -50px; } }
+.fade { position: absolute; inset: 0; background: var(--ink); opacity: 0; transition: opacity .35s; }
+.fade.on { opacity: 1; }
+
+/* the JAPA Receipt: a POS thermal slip */
+.dim { position: absolute; inset: 0; background: rgba(25,27,30,.6); animation: dimIn .4s; }
+@keyframes dimIn { 0% { opacity: 0; } }
+.receipt { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%) rotate(-1.5deg); width: min(310px, 84vw);
+  background: #FBFAF6; color: #222; font: 500 13px/1.45 var(--mono); padding: 18px 18px 14px;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.45)); animation: print .9s ease-out;
+  -webkit-mask: conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / 12px 51% repeat-x,
+                conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 12px 51% repeat-x; }
+@keyframes print { 0% { clip-path: inset(0 0 100% 0); } 100% { clip-path: inset(0 0 0 0); } }
+.receipt .logo { font: 400 30px/1 var(--sign); text-align: center; color: var(--ink); }
+.receipt .bar { height: 15px; margin: 6px 0 10px; }
+.receipt .row { display: flex; justify-content: space-between; gap: 8px; }
+.receipt hr { border: 0; border-top: 1.5px dashed #999; margin: 8px 0; }
+.receipt .big { font-weight: 700; }
+.receipt .rstamp { position: absolute; right: 12px; top: 14px; transform: rotate(-12deg); border: 3px solid var(--red); color: var(--red);
+  font: 400 18px/1 var(--sign); padding: 6px 8px; border-radius: 6px; opacity: .9; }
+.receipt .rstamp.good { border-color: var(--teal); color: var(--teal); }
+.receipt .lesson { margin-top: 6px; font-weight: 700; }
+.actions { position: absolute; left: 16px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); display: flex; gap: 10px; }
+.btn { flex: 1; text-align: center; padding: 14px 8px 12px; border: 3px solid var(--ink); border-radius: 12px; box-shadow: 4px 4px 0 var(--ink);
+  font: 400 15px var(--sign); color: var(--ink); background: var(--danfo); }
+.btn.alt { background: var(--paper); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--paper); }
+.loading div { font: 400 44px var(--sign); text-align: center; }
+.loading .bar { width: 160px; height: 15px; margin: 10px auto 0; }
+.loading p { font: 700 15px var(--body); margin: 12px 0 0; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
