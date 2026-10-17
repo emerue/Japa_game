@@ -1,1 +1,147 @@
+JAPA — DEV LOG
+What has been done, newest first. The destination is Technical-spec.txt; the product plan is PRD.md.
 
+====================================================================
+WHERE WE ARE (as of Sat 17 Oct 2026, evening)
+====================================================================
+Direction is locked: an open-world Lagos game (PRD.md v3 + decision log
+§0). Next: a half-day 3D spike on the test phone, then the vertical slice.
+
+Item                              Status
+--------------------------------  ---------------------------------------------
+Product direction                 Locked (PRD.md §0, Q1–Q31).
+Tech spec                         Reconciled with PRD v3; ADRs 0001–0003.
+3D test loop                      Working: Infinix HOT 40i over adb (WebGL2,
+                                  Mali-G57, 60 fps on a trivial scene).
+3D performance spike              Not started (next).
+Engine                            Built for cards (Stage/Event/Meter/Archetype
+                                  names, 4 meters). Needs renaming to the new
+                                  glossary and the five Resources, action-based
+                                  time, PCG32, action log, replay(), kobo.
+27 events                         Written (UK Student, Fresh Graduate). To be
+                                  re-cast as Events triggered in the World.
+Vertical slice                    Not started (scope in PRD §0).
+
+====================================================================
+SAT 17 OCT 2026 (later): direction locked
+====================================================================
+Design review
+- @ikenna and Claude went through PRD v3 (open world) question by question
+  (Q1–Q31). Outcome recorded in PRD.md §0. Highlights:
+  - v3 is the product source of truth; the old PRD.md and the v3 source
+    draft are in docs/history/.
+  - 25 Nov is a soft date; the vertical slice is the real gate. Team is
+    @ikenna + Claude.
+  - Three.js low-poly 3D, gated by a half-day spike (30+ fps, shadows off,
+    on the test phone); fallback isometric Canvas2D. 2D lite mode on the
+    same simulation.
+  - Static launch with switchable save/share/social/analytics adapters;
+    analytics Worker is the only server. Free at launch.
+  - Single-player world at launch with async social via share links; live
+    presence (avatars, emotes, preset phrases, room visits, no free text)
+    is the first major update.
+  - Real Lagos landmarks in a compressed map; made-up business names with
+    familiar colours; @ikenna reviews each zone for authenticity.
+  - Resources: Funds, Energy, Readiness, Home ties, Risk sense. Only Funds
+    and Energy can end a run (Deep Debt, Burnout). Time moves by action.
+  - Sound on by default at low volume, with a visible mute.
+
+Docs
+- New PRD.md (v3 + decision log). Technical-spec.txt reconciled: game
+  systems, client architecture, engine contract, phases and open decisions
+  rewritten; backend, social, scaling and monetisation marked post-launch.
+- GLOSSARY.md rewritten to the new terms (Act/Event/Choice/Background/
+  Resource, World/Zone/Landmark). The code still uses the old names.
+- ADRs: 0001 3D + lite on one simulation, 0002 static launch with
+  switchable adapters, 0003 time moves by action.
+
+3D test loop on the phone (solves "the dev Mac can't render 3D")
+- Headless Chrome on the Mac has no WebGL even with SwiftShader flags.
+- Installed adb (brew cask android-platform-tools). Test phone: Infinix
+  HOT 40i, Android 13, Unisoc T606, Mali-G57, ~8 GB RAM, 720x1612,
+  Chrome 154. A WebGL2 test page ran at 60 fps.
+- Gotchas: Mac Chrome holds the phone's USB exclusively (adb error
+  e00002be), so quit Chrome to use USB. USB adb flapped; switched to
+  network adb (adb tcpip 5555, then adb connect 10.13.137.49:5555 over
+  the phone's hotspot). Re-do after a phone reboot. Use adb reverse
+  tcp:5173 to serve pages from the Mac; screencap for screenshots.
+- The phone is above the 2 GB floor; test a cheaper Android before beta.
+
+====================================================================
+SAT 17 OCT 2026
+====================================================================
+Build
+- Built the first playable version in Japa_game/: Fresh Graduate on the
+  UK Student Visa route, five stages (Hustle, Paperwork, Visa Interview,
+  Departure, Settling In), 27 events, 9 endings.
+- Engine: pure functions over an immutable run state, seeded RNG, all
+  content as data. Includes a content validator and a balance simulator.
+  Over 5,000 simulated runs, a sensible bot wins about 88% of the time and
+  a random bot about 5%.
+- Tests: 17 passing (node --test). They cover choices, requirements, visa
+  refusal and retry, endings, determinism, and 500 full runs that all
+  reach a valid ending.
+- No dependencies. Run it with `npm run dev`, then open http://localhost:5173.
+
+Feedback
+- @ikenna rejected the presentation: "a text based question and answer
+  game". The engine and content approach carry over; the presentation is
+  being redone.
+
+Problem: npm install fails
+- npm fails with UNABLE_TO_GET_ISSUER_CERT_LOCALLY, even outside the
+  sandbox. Likely a machine-level TLS/proxy issue; cause not found yet.
+- Workaround: plain JavaScript with JSDoc types for now. Not needed until
+  Phase 2 (Vite, TypeScript, Workbox).
+
+Problem: the dev Mac can't render 3D
+- Hardware: MacBook Pro (mid-2015, MacBookPro11,5) with Intel Iris Pro and
+  AMD Radeon R9 M370X, running macOS 15.5 through OpenCore Legacy Patcher
+  2.4.1.
+- WebGL fails in both Chrome and Safari. chrome://gpu shows the GPU
+  process not starting (GPU0 VENDOR=0x0000). get.webgl.org draws no cube.
+  The patched graphics drivers are loaded, but 3D isn't accelerated.
+- Consequence: test 3D on a phone over local Wi-Fi (D5). The Mac becomes
+  the lite-view test device.
+
+Research: Lagos Life (lagoslife.app), hands-on review plus screenshots
+- 3D world built from simple shapes: flat colours, no textures, a tilted
+  overhead camera. Interiors are cutaway dollhouse rooms (e.g. Marina
+  Towers).
+- Characters are animated models with name tags; other real players show
+  up in shared rooms.
+- Frosted UI floats over the world: a top bar (date, mood, players online,
+  money +), quest chips, compact needs bars, and a bottom tab bar (Home,
+  Buy, Map, Phone).
+- Events pop up as cards with an illustration and 2–3 buttons, with the
+  cost shown on each, plus a free way out.
+- The in-game phone is the hub. Sponsor apps (Heala, PopOut Tickets) sit
+  there, and a Fireboy DML release runs as a scavenger hunt.
+- Billboards across the map are ad slots ("YOUR AD HERE ₦250k / 7 days").
+- When 3D fails, it falls back to a lite 2D view and tells the player.
+- Result: proposed direction in PRD §6, awaiting decisions D1–D5.
+
+Repo
+- Folded the project into a single git repo at the JAPA Game root (removed
+  the empty nested repo). Pushed the initial commit 075f63d to
+  github.com/emerue/Japa_game (main).
+
+Docs
+- Added PRD.md. Started this log.
+
+====================================================================
+FRI 16 OCT 2026
+====================================================================
+Design session (first round of grilling questions)
+- Premise: one person's attempt to emigrate from Nigeria. Satire built on
+  real obstacles.
+- Platform: web browser first, mobile-friendly.
+- Loop: choice-driven narrative with resources.
+- Legal routes only; no irregular desert or sea routes.
+- Dev_log.txt is the development journey; Technical-spec.txt is the
+  destination.
+- Started GLOSSARY.md. Its terms now conflict with the spec's (decision D7).
+
+Spec
+- @ikenna wrote Technical-spec.txt: architecture, game systems, social,
+  monetisation, scaling, security, build phases and risks.
