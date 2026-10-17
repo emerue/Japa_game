@@ -25,9 +25,27 @@ Engine                            Built for cards (Stage/Event/Meter/Archetype
                                   time, PCG32, action log, replay(), kobo.
 27 events                         Written (UK Student, Fresh Graduate). To be
                                   re-cast as Events triggered in the World.
-Vertical slice                    Playable end to end on the test phone
-                                  (index.html). Not yet: lite 2D mode,
-                                  compressed characters, share image, sound.
+Vertical slice                    Live for testers at
+                                  https://japa.45-77-62-61.sslip.io
+                                  Not yet: lite 2D mode, share image, sound.
+
+====================================================================
+SAT 17 OCT 2026 (night): design pass, deployed for testers
+====================================================================
+- Live for testers: https://japa.45-77-62-61.sslip.io (VPS 45.77.62.61,
+  nginx site "japa", Let's Encrypt cert, gzip). Deploy again with
+  Japa_game/tools/deploy.sh (runs the tests, rsyncs static files).
+  The VPS's other sites (abzurd.com.ng, frog) were left untouched.
+- Tester feedback: Tally form https://tally.so/r/q5ZzW2 (hidden fields:
+  build, stamp). Linked from the title screen, a corner button and the
+  receipt.
+- Design pass (frontend-design): title screen with JAPA on a danfo side
+  panel over a drifting shot of the street; loading bar; Lagos detail
+  (paving stones, patchy asphalt, burglar bars, awnings, water tanks,
+  satellite dishes, cables, a keke, harmattan sky, ACES tone mapping);
+  action button pulse; first-walk hint.
+- Characters packed to GLB (tools/pack_characters.py): 18 MB -> 5.4 MB,
+  about 1.2 MB over the network.
 
 ====================================================================
 SAT 17 OCT 2026 (evening): vertical slice playable
