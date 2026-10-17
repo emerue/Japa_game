@@ -74,14 +74,18 @@ This PRD replaces the earlier scenes-and-cards PRD (`docs/history/PRD_v1_scenes-
 
 ### Camera, controls and interaction (Q21–Q23)
 
-**Q21 — Camera and controls.** An elevated third-person camera follows the player, angled about 50° down and close enough to see expressions, nearby props and interactions on a 720px-wide screen.
-- Mobile: virtual joystick on the left; one contextual action button on the right.
-- Desktop: WASD to move, E to interact.
-- The contextual button changes with the nearest valid interaction: Talk, Enter, Buy, Inspect, Use, Pick Up.
-- Smooth following, collision handling around buildings and props, readable positioning indoors and outdoors.
-- Controls stay responsive without covering important characters or interaction targets.
+**Q21 — Camera and controls (revised 17 Oct 2026 after the look tests: the standard casual-game camera, user experience first).** The audience includes many non-gamers, so the camera must need no thought.
+- **Follow camera with a fixed direction:** it follows the player but never swings around by itself. Up on the joystick is always up the screen. (Cameras that swing behind the player confuse new players and cause motion sickness on small screens.)
+- **About 45° down, mid distance:** the player is about 13–15% of screen height, close enough to see faces and outfits with enough street to explore. Portrait about 10 m; landscape about 12.5 m (wider view).
+- **Soft follow:** a small dead zone so the camera doesn't jitter, and a slight lead in the walking direction. In portrait the player sits a little below centre, leaving the bottom strip for controls and the choice panel.
+- **Wall tilt:** when a wall is close in front of the player (up-screen), the camera tilts down to about 60° so the player sees the pavement and doors, not a blank facade.
+- **Nothing hides the player:** buildings, roofs and vehicles between the camera and the player fade.
+- **Conversation close-up:** talking to someone eases the camera into a side-on two-shot with both faces in the upper half, above the choice panel, then eases back. The speech bubble stays fully on screen.
+- **Optional, never required:** drag on empty screen to turn the view, pinch to zoom within limits, double-tap to reset.
+- Mobile: virtual joystick on the left, one contextual action button on the right (Talk, Enter, Buy, Inspect, Use, Pick Up). Desktop: WASD to move, E to interact.
+- Top bar: money, energy and in-game time as compact pills.
 
-This camera is part of JAPA's visual identity. Do not replace it with a fixed, tilted overhead view simply because that is easier to implement.
+Reference test: `Japa_game/spikes/3d-street/cam.html` (screenshots in the dev log, 17 Oct 2026).
 
 **Q22 — Going inside buildings.** Small buildings (house, shop, cybercafé) are entered seamlessly: the camera stays in the same world and the roof and obstructing front walls fade, so the player keeps moving inside with no loading screen. Large interiors (visa application centre, airport) may load as compact separate scenes after a short transition.
 - Preserve player position and interaction continuity.

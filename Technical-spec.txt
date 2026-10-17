@@ -191,7 +191,7 @@ Adapters
 Save / Share / Social / Analytics interfaces, each with a local implementation and a server implementation chosen by one config flag
 Turning on a backend means writing adapters, not rewriting the game (ADR 0002)
 Rendering approach
-• Elevated third-person follow camera, about 50° down, with collision around buildings and props. Virtual joystick left, one contextual button right (Talk, Enter, Buy, Inspect, Use, Pick Up); WASD + E on desktop.
+• Follow camera with a fixed direction, about 45° down, 10 m in portrait / 12.5 m in landscape, with a dead zone, a slight lead, a tilt to ~60° near walls, faded occluders (buildings and vehicles) and a two-shot close-up for conversations (PRD §0 Q21). Virtual joystick left, one contextual button right (Talk, Enter, Buy, Inspect, Use, Pick Up); WASD + E on desktop.
 • Decisions: speech bubbles over NPCs; a bottom sheet of 2–4 choices with costs, covering at most the bottom third; consequences shown in the world (cash leaving the hand, NPC reactions, floating "+Home ties").
 • Low-graphics mode: no shadows, lower pixel ratio, fewer ambient NPCs and vehicles; movement, quests and interactions unchanged.
 • Zones stream in progressively; the first zone loads before control is given.

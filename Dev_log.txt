@@ -16,8 +16,9 @@ Tech spec                         Reconciled with PRD v3; ADRs 0001–0003.
 3D performance spike              Passed: 60 fps shadows off, 55 fps shadows
                                   on (worst case). Characters, skin tones, face
                                   lighting chosen (PRD §0, Q32–Q35).
-Camera angle                      Lower camera (~32°, 9 m) proposed; awaiting
-                                  @ikenna's yes before changing Q21.
+Camera                            Standard casual-game follow camera chosen
+                                  (PRD Q21 revised): fixed direction, ~45°,
+                                  10 m, conversation close-up.
 Engine                            Built for cards (Stage/Event/Meter/Archetype
                                   names, 4 meters). Needs renaming to the new
                                   glossary and the five Resources, action-based
@@ -50,6 +51,18 @@ look human"
 - Danfo rebuilt in code: two black stripes, window band, open sliding
   door with seats, roof rack with luggage, bumpers, lights. Still needs a
   rounded nose, a conductor and slogans; waiting on @ikenna's review.
+
+Camera (cam.html), @ikenna: "use standard camera setting for games like
+this, think about the users experience first"
+- Fixed-direction follow camera (never swings by itself), ~45°, 10 m in
+  portrait, dead zone, slight lead, player a little below centre; tilts
+  to ~60° near walls; buildings and danfos fade when blocking; two-shot
+  close-up for conversations with the speech bubble kept on screen.
+- Mock joystick, Talk button, top bar and a "Rent Is Due" choice panel
+  on the phone: the player is ~13% of screen height and both faces read
+  above the panel.
+- Walking right against a building still shows mostly wall: fix through
+  level design (wider pavements, detailed shopfronts), not the camera.
 
 Characters (chars.html)
 - @ikenna downloaded RG Poly Cartoon City (free) and Quaternius Ultimate
