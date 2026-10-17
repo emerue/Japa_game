@@ -1,0 +1,627 @@
+JAPA — Technical Design & Architecture
+Oct 16, 2026 · @ikenna
+Purpose and design principles
+JAPA is a mobile-first browser game. It must load on a cheap Android phone over expensive data and survive going from zero to one million players in 72 hours without falling over. Lagos Life proved that this kind of spike happens, and its early outages and in-game money exploit are the two failures this architecture is designed to prevent.
+Scope: the MVP (Acts 1–3, a short Act 4, UK, Canada, Germany and Remote Work routes, the embassy minigame, result cards, Sponsor a Friend, payments, rewarded ads, sponsor placements) and the platform it needs to scale to 1M+ daily players.
+Design principles
+1. Static first. Everything a guest needs to play a run is static files on a CDN. If every backend service is down, people can still play, and progress syncs later.
+2. Server load scales with runs, not swipes. The client plays the run locally. The server is involved only when something with lasting value changes: currency, unlocks, leaderboards, social actions.
+3. Never trust the client with value. Anything that persists — money, unlocks, ranks — is validated on the server by replaying the run deterministically.
+4. Naija specs are hard limits, not targets. Initial load under 3 MB, works on a 2 GB RAM Android, tolerates dropped connections mid-danfo.
+5. Degrade, don't die. Every non-core feature (feed, transfers, leaderboards, share cards) sits behind a kill switch, so the core game stays up when one part fails.
+6. Boring, managed infrastructure. Use managed services the team doesn't have to operate. The scarce resource is engineering time, not servers.
+7. Content is data. Cards, events and sponsor placements ship as versioned content packs, not code. Writers and live-ops change the game without a deploy.
+Non-functional requirements
+The binding targets are a 3 MB first load, a 4-second start on 3G, and holding 50,000 concurrent players at launch-spike peak with headroom to 1M daily players. Everything else is sized from these.
+Area
+Target
+Why
+First load (gzipped, all assets)
+≤ 3 MB; hard ceiling 5 MB
+Data is expensive; heavy pages get abandoned
+Time to first swipe
+≤ 4 s on a 3G-class connection, mid-range Android
+Players decide in seconds
+Repeat visit load
+≤ 300 KB (cached by service worker)
+Returning players should pay almost nothing
+Device floor
+Android 9, 2 GB RAM, Chrome / Opera Mini-class browsers
+That's the real market
+Frame rate
+60 fps mid-range, 30 fps floor on low-end
+Swipes must feel instant
+Offline
+A full run playable with no connection; sync on reconnect
+Connections drop mid-transit
+Availability (core play)
+99.95% monthly — static, so CDN-backed
+The game must never be "down"
+Availability (accounts, economy, social)
+99.9% monthly
+Allowed to degrade before core play does
+API latency
+p95 < 300 ms from Lagos, p99 < 800 ms
+Felt on run-end and purchases
+Launch capacity
+50,000 concurrent players; 1,500 run commits/s; 5,000 API req/s
+Lagos Life's 1M-in-3-days curve, with 3× headroom
+Growth ceiling (no re-architecture)
+1M+ daily players, 10M registered
+Scale up by configuration, not rewrite
+Data durability
+Zero loss of purchased value; recovery point ≤ 5 min; recovery time ≤ 1 h
+Paid money must never vanish
+Cost
+Infrastructure ≤ 15% of revenue at scale
+Viral traffic must not bankrupt the company
+Architecture overview
+JAPA is four layers: a PWA that plays runs on the phone, a Cloudflare edge that serves almost all traffic, a stateless API with background workers, and managed data stores. The database is reached only through the API and the queue, never directly by players.
+Players load the game from the edge and play locally; the API only sees run commits, purchases and social actions, and slow work goes through the queue so spikes wait in line instead of hitting the database.
+Key architecture decisions
+Decision
+Choice
+Rejected
+Why
+Where the run is played
+On the client, from a server-issued seed
+Server-driven, one call per swipe
+Cuts server load by ~100×, works offline
+How value is protected
+Server replays the action log before crediting
+Trusting client results
+Closes the exploit class that hit Lagos Life
+Money model
+Double-entry ledger, two non-withdrawable currencies
+Balance column on the player row
+Auditable, reversible, no lost or duplicated money
+Real-time social
+Polling with ETags
+WebSockets
+No 50k open connections to manage at launch
+Service shape
+One modular API + workers
+Microservices
+Small team; split later by measured load
+Rendering
+Preact + PixiJS, 2D
+Unity WebGL or 3D engine
+Fits the 3 MB budget and low-end phones
+Infrastructure
+Managed services (Cloudflare, managed Postgres and Redis, serverless containers)
+Self-run VPS cluster
+Engineering time is the scarce resource
+
+
+
+
+Game systems specification
+A run is one life of 15–25 minutes, played as a sequence of swipe decisions across five acts, ending in one of a fixed set of endings. All values below are launch defaults that live in content config and are tuned after playtests, not hard-coded.
+Stats
+Stat
+Range
+Start
+Run ends when
+Notes
+Money
+Integer, naira or local currency abroad
+Set by starting trait (₦50k–₦400k, may be negative)
+Below –₦2M debt for 3 consecutive cards
+Converted at the run's exchange rate on landing
+Sanity
+0–100
+60
+0 (burnout)
+Drains with night shifts, rejections, isolation
+Documents
+0–100
+10
+—
+Gates applications; fake documents add a hidden risk flag
+Family Pressure
+0–100
+40
+100 (cut off) or 0 (abandoned by support)
+Black Tax requests move it
+Connections
+0–100
+15
+—
+Unlocks sponsors, hosts, referrals, jobs
+Skill
+0–100
+5
+—
+Remote Work route only; gates job interviews
+Acts
+1. Lagos Grind. Job, side hustles, rent, family emergencies. Goal: build savings and pick a route.
+2. Processing. Route-specific preparation: exams, applications, proof of funds, agents, or skill-building and job applications.
+3. The Gate. The embassy interview (country routes) or the technical interview (Remote Work). One shared minigame engine, different question sets.
+4. Living It. Abroad (rent, work, cold, loneliness, black tax) or at home on a dollar salary (light, data, payments, night shifts, lifestyle creep).
+5. Endgame. December return, settling, coming home, or building something.
+Routes (MVP)
+Route
+Act 2 focus
+Act 3 gate
+Act 4 setting
+Key risks
+UK (study or care worker)
+IELTS, admission or sponsorship, proof of funds
+Embassy interview
+UK
+Rent, debt, sponsor-employer abuse
+Canada (Express Entry or study)
+IELTS, credential check, points, proof of funds
+Embassy interview
+Canada
+Cold, long wait times, underemployment
+Germany (Opportunity Card or Ausbildung)
+German language, recognition of qualifications
+Embassy interview
+Germany
+Language barrier, bureaucracy
+Remote Work ("Japa Without Japa")
+Skill-building, portfolio, job applications
+Technical interview
+Lagos
+Power cuts, payment freezes, layoffs, scam recruiters
+Routes can merge: Remote Work can lead to an employer-sponsored relocation, which joins a country route at Act 4.
+The Gate minigame
+• 5–7 timed questions (8 seconds each) from an officer or interviewer with a personality: strict, bored, suspicious, friendly.
+• Each answer shifts a hidden approval score. The final score combines answers (50%), stats (35%, mostly Documents or Skill) and seeded luck (15%).
+• A hidden fake-document flag adds a chance of instant refusal and a ban from that route for the rest of the run.
+• Outcomes: approved, refused (retry costs money and time), or administrative processing (delay, one extra card set).
+Endings
+Ending
+Condition (simplified)
+Japa Lord
+Abroad, Money and Sanity above thresholds at Act 5
+IJGB King / Queen
+Abroad, chose the December return, Money above threshold
+Survived, Not Thriving
+Abroad, Money or Sanity low at Act 5
+Embassy Regular
+5 or more refusals in one run
+Returnee
+Went abroad, chose to come home
+Stayed and Won
+Never left, Money and Sanity above thresholds
+Dollar Earner at Home
+Remote Work, kept the job to Act 5
+Founder
+Remote Work, invested savings in a business card chain
+NEPA Took My Job
+Remote Work, fired after too many outage events
+Burnout / Cut Off / Deep Debt
+A stat hit its failure limit
+Meta-progression (persists across runs)
+• Starting traits (Rich Uncle, First Class, Village People, Pastor's Child, Twin) unlocked by endings and achievements.
+• New routes and card sets unlocked by playing; the Japa Record logs attempts, refusals, countries and endings.
+• Cosmetics (outfits, homes, card backs) bought with Coins or earned.
+• Meta unlocks change starting conditions only, never the odds of the Gate — paying can't buy a visa.
+Client architecture
+The client is a TypeScript progressive web app (PWA): a light UI shell for menus, plus a 2D renderer for the card scene and effects. No Unity export and no heavy 3D engine — the game is card-and-story driven, so the budget goes to writing and feel, not polygons.
+Stack
+Layer
+Choice
+Reason
+Language / build
+TypeScript, Vite
+Fast builds, code splitting, hashed asset names
+UI shell (menus, wallet, feed)
+Preact + Signals (~10 KB)
+React-style code at a fraction of the size
+Card scene and juice
+PixiJS v8 (WebGL, canvas fallback), lazy-loaded
+Smooth swipes, particles, screen shake on low-end GPUs
+Game logic
+Pure TypeScript simulation module, no UI or network code
+Same code runs on client and server (see replay)
+Audio
+Howler.js, one compressed audio sprite (Opus, AAC fallback)
+One download for all sound effects; music streamed later
+Local storage
+IndexedDB (run state, outbox), via a tiny wrapper
+Survives tab kills and offline periods
+Offline
+Service worker (Workbox): precache the shell and the active content pack
+Plays with no connection
+Portal builds
+Same codebase, a platform adapter (web, Poki, CrazyGames) chosen at build time
+One game, several distribution channels
+Deterministic simulation (the core idea)
+• Every run starts from a server-issued run_seed plus a content pack version.
+• All randomness — visa outcomes, events, card draws — comes from a seeded generator (PCG32), never Math.random().
+• The client records an action log (card id + choice + step, a few bytes each).
+• Given the same seed, content version and action log, the simulation produces the same outcome on any machine. That lets the server replay a run to check it (see Backend).
+Performance budget
+Asset
+Budget (gzipped)
+App shell (HTML, CSS, Preact, game logic)
+180 KB
+PixiJS (lazy, after first paint)
+450 KB
+Act 1 content pack (cards, text)
+150 KB
+Art atlas for Act 1 (WebP/AVIF, 1× and 2×)
+1.2 MB
+Audio sprite (effects only)
+400 KB
+Fonts (one family, subset)
+60 KB
+Total first load
+≈ 2.4 MB
+Later acts, countries and cosmetics load on demand in the background while the player is in Act 1. The build fails in CI if any budget is exceeded.
+Feel (juice)
+• Card swipes respond on the first frame of touch, with spring physics and a tilt that hints at the outcome.
+• Stat changes animate with a pulse and short sound; big moments (visa stamp, rejection) get screen shake, particles and haptics via the Vibration API.
+• Respect prefers-reduced-motion and add a low-power mode that drops particles on weak devices (detected by frame timing).
+Onboarding target: a new player is swiping a meaningful card within 30 seconds of the page opening — no sign-up, no tutorial screen; the first three cards teach swiping.
+Simulation engine and content format
+The simulation is a pure, deterministic TypeScript package (sim/) shared by client and server: same seed + same content version + same action log = same result, on every device. Writers change the game by editing content packs, never engine code.
+Engine contract
+• startRun(seed, contentVersion, trait) → RunState
+• nextCard(state) → Card
+• applyChoice(state, cardId, choice) → RunState — the only way state changes
+• evaluateEnding(state) → Ending | null
+• replay(seed, contentVersion, trait, actions[]) → { state, ending, valid, error? }
+Rules the engine must keep:
+• No Math.random(), Date.now(), network or DOM access inside sim/. Randomness comes only from a seeded PCG32 generator carried in RunState.
+• Integer arithmetic only (money in kobo or cents); no floating-point drift between devices.
+• Every content version stays playable forever on the server, so old runs can still be replayed and validated.
+• A replay test suite of 1,000+ recorded runs runs in CI on every change; any difference blocks the merge.
+Action log format
+Each action is [step, cardId, choice, elapsedMs] — about 12 bytes compressed. A full run is typically 150–300 actions, under 4 KB. elapsedMs is kept for anti-bot analysis (inhuman speed), not for the outcome.
+Content pack
+A pack is a versioned, signed JSON file per route or act, served from the CDN with a hashed name and listed in a manifest the client checks on start.
+{
+  "id": "uk-proof-of-funds-03",
+  "route": "uk",
+  "act": 2,
+  "weight": 10,
+  "requires": { "flags": ["uk_admission"], "stats": { "money": { "lt": 2000000 } } },
+  "speaker": "uncle_emeka",
+  "text": "Your proof of funds is ₦3m short. Uncle Emeka says he can 'show' the money for a fee.",
+  "left": {
+    "label": "Pay him",
+    "effects": { "money": -150000, "documents": 20 },
+    "setFlags": ["fake_funds"],
+    "next": "uk-funds-consequence-01"
+  },
+  "right": {
+    "label": "Keep saving",
+    "effects": { "sanity": -5 },
+    "delayCards": 4
+  },
+  "sponsorSlot": null,
+  "tags": ["risk", "satire"]
+}
+Content pipeline
+1. Writers edit cards in a shared sheet, one row per card, with columns matching the schema.
+2. A converter turns the sheet into JSON and a validator checks it: schema, broken next links, unreachable cards, impossible requirements, effect ranges, banned words.
+3. A balance simulator plays 100,000 bot runs per route and reports ending distribution, run length and dead ends. A route ships only if every ending is reachable and no single ending exceeds 40%.
+4. The pack is signed, uploaded to R2 under a new version, and turned on by updating the manifest — with a feature flag for gradual rollout and instant rollback.
+Sponsor slots are named placeholders on cards (for example remittance_app). The sponsor service fills them per country and campaign at pack build time, so the engine never knows about brands and replays stay deterministic.
+Backend services, data and economy
+The backend is one stateless Node.js API (Fastify, TypeScript) deployed as containers, split into modules — not microservices — with heavy or slow work pushed to background workers through a queue. Splitting into separate services happens only when a module's load profile demands it.
+Modules
+Module
+Owns
+Hot path?
+Identity
+Guest accounts, phone OTP / Google upgrade, device tokens, sessions
+Sign-in only
+Runs
+Issue run seeds, accept run checkpoints and endings, trigger replay validation
+Yes — the busiest write path
+Economy
+Wallets, the double-entry ledger, purchases, transfers, rewards
+Yes
+Progression
+Unlocks, traits, Japa Record, achievements
+Read-heavy
+Social
+Friends, Sponsor a Friend, Black Tax requests, activity feed
+Medium
+Leaderboards
+Boards by state, school, country, season
+Read-heavy
+Content / live-ops
+Content pack manifest, remote config, feature flags, live events
+Served from CDN
+Sponsors and ads
+Sponsor placements, impression and click events, rewarded-ad verification
+Write-heavy, async
+Share cards
+Render result-card images and share pages
+Async, edge-cached
+Payments
+Paystack / Flutterwave checkout, webhooks, reconciliation
+Low volume, must be exact
+Data stores
+Store
+Used for
+Choice
+PostgreSQL
+System of record: accounts, ledger, runs, progression, social graph
+Managed Postgres (Supabase or Neon) with PgBouncer pooling and a read replica
+Redis
+Leaderboards (sorted sets), rate limits, session cache, hot counters, idempotency keys
+Managed (Upstash or Redis Cloud)
+Queue
+Run validation, share-card renders, feed fan-out, analytics, notifications
+Cloudflare Queues (or SQS / Redis Streams)
+Object storage
+Content packs, art, share-card images
+Cloudflare R2 (no egress fees)
+Analytics
+Event stream for funnels, retention, card drop-off
+PostHog to start; ClickHouse when volume demands
+Core tables (simplified)
+• players (id, guest_token_hash, phone_hash, country, state, created_at)
+• runs (id, player_id, seed, content_version, status, action_log, outcome, validated_at) — partitioned by month
+• ledger_accounts (id, owner_id, currency: GAME_NAIRA / COINS, kind: player / system / sponsor)
+• ledger_entries (id, txn_id, account_id, amount, created_at) — append-only, partitioned by month
+• transactions (id, kind, idempotency_key UNIQUE, status, metadata)
+• unlocks, friendships, transfers, sponsor_impressions, purchases
+Economy: a real ledger, not a balance column
+• Every change of value is a transaction with two or more ledger entries that sum to zero. Money is never created by editing a number; it moves from a system account (rewards, purchases) to a player account.
+• Balances are derived from entries and cached; a nightly job checks every account still sums correctly and alerts on any difference.
+• Every write carries an idempotency key, so a retried request or a double-tap can never pay twice.
+• Two currencies: Game Naira (earned in play, cannot be bought or withdrawn) and Coins (premium, bought with real money, spent on cosmetics and boosts). Neither can ever be cashed out — this keeps the game out of gambling and money-transmission regulation.
+• Player-to-player transfers (Sponsor a Friend, Black Tax) are capped per day, require an account older than a set age, and are rate-limited and screened for farming patterns.
+Anti-cheat by replay
+1. The server issues a seed when a run starts and records it.
+2. The client plays offline and submits the action log at checkpoints and at the ending.
+3. A worker replays the log through the same simulation module. If the outcome matches and the actions are legal, rewards post to the ledger; if not, the run is flagged and nothing is credited.
+4. Rewards per run, per hour and per day are capped regardless of outcome, so even a perfect exploit is bounded.
+This closes the class of bug behind Lagos Life's money exploit: the client can show whatever it likes, but only server-verified results ever reach the ledger.
+Social systems
+Players interact asynchronously and only with people they have added, using preset messages and stickers, not open chat. Every interaction changes something in the game for both sides, is capped per day, and is built on two primitives: a social action (a ledger-backed or state-changing request between two players) and a feed event (a read-only notice to a crew).
+Interactions
+Interaction
+Sender gets
+Receiver gets
+Daily caps
+Built on
+Sponsor a Friend
+Connections +, Sponsor badge
+Game Naira, a support letter (Documents +) or a boost, applied to their next run
+Send 3 / receive 5; Game Naira amount capped per tier
+Social action + ledger transfer
+Black Tax request
+— (asker)
+Recipient picks Send (Money –, Family +), "I go call you" (Sanity –), or Ignore (Family Pressure +)
+Send 5 / receive 10
+Social action, expires after 48 h
+Japa Crew
+Shared feed, sticker reactions
+Same
+One crew per player, 8 members max
+Feed events
+Crew weekly goal
+Share of crew reward
+Same
+One goal per week
+Aggregated counters in Redis, settled weekly by a worker
+Same Life Challenge
+Comparison card vs friends
+Plays the same seed
+3 challenge seeds per day
+Shared seed record; results compared after replay validation
+Host a Newcomer
+Connections +
+First-month rent and Sanity relief abroad
+Host 2 per week
+Social action applied at Act 4 start
+Embassy Queue
+Good-luck stickers
+Sees friends waiting, result broadcast to crew
+—
+Feed events; queue state in Redis with TTL
+Leaderboards
+Rank by state, school, country, season
+—
+—
+Redis sorted sets
+Share cards
+Referral credit after the new player's first run
+New run with referral attached
+—
+Edge-rendered images + referral table
+Friend graph
+• Players connect by invite link, QR code or crew code — no searching for strangers by name or phone.
+• Friendships are mutual and require acceptance; blocking removes the friendship and hides all past feed events from each other.
+• Crews and friends lists are capped (200 friends, 8 per crew) so feed fan-out stays bounded.
+Social action lifecycle
+1. pending — created by the sender with an idempotency key; any value moves into an escrow ledger account.
+2. accepted / declined / expired — set by the receiver or by a worker after the time limit.
+3. On accepted, escrow moves to the receiver; on declined or expired, it returns to the sender. Both are ledger transactions, so no value is ever lost or duplicated.
+Messages and safety
+• Only preset messages and stickers (about 60 at launch), localised in Nigerian English and Pidgin. Custom text is limited to display names and crew names, both filtered.
+• Report and block on every player surface; three reports from distinct accounts hide a display name until reviewed.
+• Accounts under 7 days old, or still guests, cannot send Game Naira — this stops farming with throwaway accounts.
+Deliberately not built at launch: open chat with strangers, free trading between players, a real-time shared world, and dating features. Each adds moderation, fraud or infrastructure risk out of proportion to its value for a card game.
+Scaling strategy and viral-spike playbook
+The plan for a spike is that most traffic never reaches our servers: the CDN serves the game, the client plays the run, and the backend only handles commits, which are small, batched and queued. The database is the one part that cannot scale instantly, so the design protects it above everything else.
+How each layer scales
+Layer
+How it scales
+Limit we plan for
+Game files
+Cloudflare CDN, immutable hashed files, cache hit rate > 98%
+Effectively unlimited
+API containers
+Stateless; autoscale on CPU and request rate (Cloud Run or Fly.io), minimum 3 instances across 2 regions
+Add instances in under a minute
+Run validation
+Queue + worker pool; autoscale on queue depth; players get a provisional result instantly, the ledger credit follows
+Lag is acceptable; dropped work is not
+Postgres writes
+Pooled connections (PgBouncer); writes batched; run logs and ledger partitioned by month; hot counters kept in Redis and flushed
+Vertical scale, then shard by player id if ever needed
+Postgres reads
+Read replica for profiles, progression, feed; Redis cache in front
+Add replicas
+Leaderboards
+Redis sorted sets, one key per board; snapshot to Postgres hourly
+Millions of entries per board
+Activity feed
+Fan-out on write, capped at 200 friends; clients poll with ETags every 60 s instead of holding open WebSockets
+Avoids 50k persistent connections at launch
+Share cards
+Rendered once per result at the edge, stored in R2, cached forever
+Effectively unlimited
+Capacity phases
+Phase
+Daily players
+Peak concurrent
+Setup
+Soft launch
+≤ 20k
+2k
+3 API instances, 1 Postgres primary, managed Redis
+Launch spike
+100k – 1M
+50k
+Autoscaling to 40 instances, 1 primary + 1 replica, worker pool up to 30
+Sustained
+1M+
+100k+
+Larger primary + 2 replicas, dedicated validation cluster, ClickHouse for analytics
+Spike playbook (run in this order when traffic surges)
+1. Confirm CDN cache hit rate is above 98%; purge nothing.
+2. Raise autoscaling limits for API and workers; watch database connection count and CPU.
+3. Turn on degraded mode via feature flags, cheapest losses first: slow feed polling to 5 min, pause leaderboard live updates, queue share-card renders, pause new player-to-player transfers.
+4. If the database is still stressed, switch run commits to end-of-run only (skip mid-run checkpoints).
+5. Last resort: enable the Cloudflare Waiting Room for account actions only. Guests keep playing; their progress stays on the device and syncs later.
+Protecting the system from abuse at scale
+• Rate limits per IP, device and account at the edge (Cloudflare) and in Redis.
+• Cloudflare Turnstile on account upgrade and transfers — invisible to most players, blocks bot farms.
+• Guest accounts get no transferable value until upgraded, so farming throwaway accounts earns nothing.
+Before launch: load-test with k6 at 3× the launch target (150k simulated concurrent players, 4,500 commits/s) and run a game-day where we kill the database replica, Redis and one region to prove each degraded mode works.
+Monetization and distribution
+Revenue comes from three streams, in this order of reliability: sponsor placements, rewarded ads, then Coin purchases. Card penetration is low for web purchases in Nigeria, so the game must earn from players who never pay; Coin purchases are aimed mainly at diaspora players.
+Payments
+• Paystack is primary (cards, bank transfer, USSD), with Flutterwave as a fallback behind the same internal PaymentProvider interface.
+• Flow: client asks the API for a checkout → API creates a pending purchase with an idempotency key → player pays on the provider's page → the provider's webhook (signature verified) confirms → the ledger credits Coins once.
+• Never credit Coins from a client redirect alone; only the verified webhook or a server-side verification call counts.
+• A daily reconciliation job matches provider settlements against the ledger and alerts on any mismatch.
+Rewarded ads
+• Players can watch a short ad for one extra embassy attempt, a stat rescue or bonus Game Naira — capped per day.
+• Ads run behind an AdProvider interface: an H5 rewarded-ad network on our own site, and each portal's own ad SDK on portal builds.
+• Rewards credit only after the ad network's completion callback, verified on the server where the network supports it.
+Sponsor placements (the main revenue line)
+• Sponsors are content, not banners: a remittance app is the in-game way to send money home, an IELTS brand is a study card, a relocation agency is a "verified agent".
+• Placements are rows in the sponsor service (brand, card ids, countries, dates, cap) and ship inside content packs, so a new deal goes live without a code release.
+• Impressions and clicks go to the analytics stream with de-duplication, feeding a sponsor report per campaign.
+Distribution
+• Own site (direct traffic): the PWA at our domain, installable to the home screen. This is where accounts, Coins and the social features live.
+• Portals (Poki, CrazyGames): a portal build from the same code, with a platform adapter that swaps in the portal's ad SDK and turns off external payments and accounts, as portals require. Check each portal's current rules before submission.
+• Share loop: every ending produces a result card. The share link opens a lightweight page with Open Graph tags, so WhatsApp, X and Instagram show the card image as a preview; tapping it opens the game straight into a new run with a referral code attached.
+• Referral tracking: referral codes on share links, attribution stored on account creation, rewards credited only after the new player finishes a first run (stops self-referral farming).
+Security, privacy and integrity
+The game holds paid value and personal data on Nigerian players, so it is built to the Nigeria Data Protection Act 2023 and to OWASP ASVS Level 2 from day one, with controls mapped so an ISO 27001 audit later is a paperwork exercise, not a rebuild.
+Data protection (NDPA)
+• Collect the minimum: no real name required; phone numbers stored as salted hashes plus an encrypted copy for OTP only.
+• Clear consent at upgrade; a privacy notice in plain English; data export and account deletion available in settings.
+• A records-of-processing register and a named data protection contact; register with the NDPC if the player base crosses the threshold that requires it.
+• Analytics use pseudonymous ids; no selling of personal data to sponsors — sponsors get aggregate reports only.
+Application security
+• All traffic over TLS; HSTS; strict Content Security Policy that allows only our CDN and the approved ad and payment domains.
+• Short-lived access tokens (15 min) with rotating refresh tokens; device binding for guest accounts.
+• Every economy endpoint requires an idempotency key and is authorised per player; no client-sent amounts are trusted.
+• Payment and ad webhooks verified by signature and checked against the provider's API before crediting.
+• Secrets in a managed secret store, never in code or the client bundle; keys rotated quarterly and after any staff change.
+• Dependency and container scanning in CI; a public security.txt and a simple bug-bounty email.
+Game integrity
+• Server-side replay of every run that earns value (see Backend).
+• Velocity rules on transfers and rewards; automated flags plus a small admin console to freeze accounts and reverse fraudulent ledger transactions with a full audit trail.
+• Admin actions require two-factor sign-in and are logged immutably.
+Content safety
+• The proof-of-funds and "agent" storylines are satire with consequences; no card describes real methods of document fraud.
+• Player-written text (names, group chat lines) passes a profanity and abuse filter; reporting and blocking are in the social features from launch.
+Observability, operations and delivery
+We run the game against four service-level objectives and page a human only when one is at risk; everything else is a dashboard, not an alert.
+Service-level objectives
+SLO
+Target
+Measured by
+Game loads and first swipe
+99.95% of sessions, p75 ≤ 4 s
+Real-user monitoring from the client
+Run commits accepted
+99.9% within 2 s
+API metrics
+Purchases credited
+100% within 5 min of payment; 99% within 30 s
+Ledger vs payment provider
+Ledger integrity
+Zero unbalanced transactions
+Nightly reconciliation + continuous check
+Tooling
+• OpenTelemetry traces and metrics from the API and workers into Grafana Cloud (or Datadog).
+• Sentry for client and server errors, with release tags and source maps.
+• Real-user monitoring in the client for load time, frame rate and crash rate by device class.
+• A public status page; uptime checks from Lagos and London.
+Operations
+• An on-call rota (even if it's two people) with runbooks for the spike playbook, payment outage, database failover and exploit response.
+• Incident process: declare, assign a lead, post status updates every 30 minutes, blameless review within 5 working days.
+• Daily database backups plus point-in-time recovery; a restore drill every month.
+Delivery
+• One monorepo: client/, server/, sim/ (the shared simulation), content/, infra/.
+• GitHub Actions: type-check, unit tests, simulation replay tests over recorded runs, bundle-size budget check, security scan.
+• Every pull request gets a preview deploy; production releases go out behind feature flags, with a 10% canary for server changes.
+• Database changes go through versioned, backwards-compatible migrations (expand, migrate, contract), so a release can always be rolled back.
+• Content packs have their own pipeline: writers edit cards in a sheet, a validator checks references and balance, and a signed pack is published to R2 with a version number.
+Build phases, risks and open decisions
+The target is a public launch in late November, ahead of Detty December, with each phase passing a gate before the next begins.
+Phases
+1. Prototype (Oct 16 – 25). Swipe loop, stats, 30 cards, deterministic simulation in sim/. Gate: 10 people outside the team play twice unprompted.
+2. MVP build (Oct 26 – Nov 15). Acts 1–3 and a short Act 4, three countries plus the Remote Work route, embassy minigame, guest accounts, ledger, run replay, result cards, Paystack, one sponsor placement. Gate: bundle within budget; replay matches on 100% of recorded runs.
+3. Hardening (Nov 10 – 18, overlapping). k6 load test at 3×, game-day failure drills, security review, NDPA notice. Gate: all four SLOs hold under load; every degraded mode tested.
+4. Soft launch (Nov 19 – 23). Invite-only to about 5,000 players through friends and a few creators. Gate: day-1 retention ≥ 35%, crash rate < 1%, no ledger mismatches.
+5. Public launch (around Nov 25). Teaser clips on X and TikTok from day 1 of the build; portal builds submitted after launch week.
+6. Live ops (December). IJGB / Detty December event, Sponsor a Friend at full scale, first sponsor campaigns.
+Risk register
+Risk
+Likelihood
+Impact
+Mitigation
+Viral spike takes down account or economy services
+High
+High
+Static-first play, queue-based commits, kill switches, Waiting Room, load test at 3×
+Currency exploit or bot farming
+High
+High
+Server replay, ledger, reward caps, Turnstile, guest accounts can't transfer
+Payment provider outage or webhook loss
+Medium
+High
+Second provider, verification polling, daily reconciliation
+Load size creeps past budget
+Medium
+High
+CI budget check fails the build
+Copycat games within days of launch
+High
+Medium
+Ship fast, weekly content drops, sponsor deals locked early
+Tone backlash (seen as anti-Nigeria or mocking emigrants)
+Medium
+High
+Playtest the writing with all four player types; "Stayed and Won" ending
+Regulatory challenge on in-game money
+Low
+High
+Non-withdrawable currencies, clear terms, legal review before launch
+Infrastructure bill outruns revenue in the spike
+Medium
+Medium
+CDN-heavy design, R2 for zero egress, budget alerts, ads live from day one
+Open decisions
+[ ] API hosting: Cloud Run vs Fly.io (both fit; pick on Lagos latency test).
+[ ] Postgres provider: Supabase (auth and realtime included) vs Neon (branching, autoscaling).
+[ ] Rewarded-ad network for our own site, and whether to launch on portals in week 1 or later.
+[ ] Team: solo with AI tools, or one more engineer for backend and economy before the MVP build phase.
