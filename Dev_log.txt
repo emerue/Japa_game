@@ -31,6 +31,19 @@ Vertical slice                    Live for testers at
                                   receipt picture.
 
 ====================================================================
+SAT 17 OCT 2026 (late): build slice-3, 3D back by default
+====================================================================
+- @ikenna saw the lite view on his phones. Cause: my test link with
+  ?lite=1 stayed in Chrome's history. Fix: development URL switches (lite,
+  at, slot, fresh, start, low) now work only on localhost; on the live
+  site they're ignored. 3D is the default wherever WebGL 2 exists; lite
+  is used when it doesn't, when 3D fails to start (caught, not an error
+  box), or when the player picks "Switch to lite view" on the title
+  screen (remembered per phone).
+- Title screen fixed for landscape phones (left column).
+- Arrow verified on the phone pointing the right way (SVG arrow).
+
+====================================================================
 SAT 17 OCT 2026 (late): fixed what was left, build slice-2 live
 ====================================================================
 - Arrow to the next goal (top tester issue): an SVG arrow pinned to the

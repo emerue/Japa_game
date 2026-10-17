@@ -20,7 +20,13 @@ import { naira, clockLabel } from './sim/engine.js';
 /** @typedef {import('./sim/types.js').Action} Action */
 /** @typedef {import('./world/people.js').Character} Character */
 
-const params = new URLSearchParams(location.search);
+// Development switches (lite, at, slot, fresh, start, low) work only on the local test
+// server, so a test link in someone's history can never change what real players get.
+const DEV = ['localhost', '127.0.0.1'].includes(location.hostname);
+const params = new URLSearchParams(DEV ? location.search : '');
+const VIEW_KEY = 'japa-view'; // the player's choice on the title screen: '3d' or 'lite'
+let viewChoice = '3d';
+try { viewChoice = localStorage.getItem(VIEW_KEY) ?? '3d'; } catch { /* private mode */ }
 const SAVE_KEY = `japa-slice-1${params.get('slot') ? `-${params.get('slot')}` : ''}`; // development: separate save slots
 if (params.get('fresh') === '1') { try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ } }
 const sim = createSim(sliceContent);
@@ -28,7 +34,7 @@ const hud = createHud();
 const audio = createAudio();
 hud.muteButton(audio.muted, () => audio.toggleMute());
 // Tester feedback (Tally form q5ZzW2); the build and receipt stamp ride along as hidden fields.
-const BUILD = 'slice-2';
+const BUILD = 'slice-3';
 const loadingScreen = hud.loading([
   'Traffic dey Ojuelegba. Lagos dey load…',
   'Mr Adewale don wake up. E dey wait.',
@@ -39,11 +45,18 @@ THREE.DefaultLoadingManager.onProgress = (_url, loaded, total) => loadingScreen.
 
 // ---------- renderer, scene, light ----------
 // Lite mode (PRD Q25): phones without WebGL get the same game drawn top-down in 2D.
-const LITE = params.get('lite') === '1' || !hasWebGL();
-const FEEDBACK_URL = `https://tally.so/r/q5ZzW2?build=${BUILD}${LITE ? '-lite' : ''}`;
+// 3D is the default on every device that can run it. Lite is used when the browser has no
+// WebGL 2, when 3D fails to start, or when the player picks it on the title screen.
+const CAN_3D = hasWebGL();
+const wantLite = params.get('lite') === '1' || viewChoice === 'lite';
 let lowGraphics = params.get('low') === '1';
 /** @type {THREE.WebGLRenderer | null} */
-const renderer = LITE ? null : new THREE.WebGLRenderer({ antialias: !lowGraphics, powerPreference: 'high-performance' });
+let renderer = null;
+if (CAN_3D && !wantLite) {
+  try { renderer = new THREE.WebGLRenderer({ antialias: !lowGraphics, powerPreference: 'high-performance' }); } catch { renderer = null; }
+}
+const LITE = !renderer;
+const FEEDBACK_URL = `https://tally.so/r/q5ZzW2?build=${BUILD}${LITE ? '-lite' : ''}`;
 if (renderer) {
   renderer.setPixelRatio(Math.min(devicePixelRatio, lowGraphics ? 1 : 1.5));
   renderer.setSize(innerWidth, innerHeight);
@@ -423,6 +436,7 @@ else {
   hud.showTitle({
     resume: actions.length > 0,
     feedbackUrl: FEEDBACK_URL,
+    view: CAN_3D ? { lite: LITE, onSwitch: () => { try { localStorage.setItem(VIEW_KEY, LITE ? '3d' : 'lite'); } catch { /* ignore */ } location.reload(); } } : null,
     onStart: () => { busy = false; begin(); },
     onRestart: () => { try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ } location.search = ''; },
   });

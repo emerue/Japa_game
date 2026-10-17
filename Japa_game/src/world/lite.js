@@ -203,11 +203,13 @@ export function createLiteView(canvas, zone, office) {
   };
 }
 
-/** True when this browser can draw the 3D World. */
+/** True when this browser can draw the 3D World (Three.js r170 needs WebGL 2). */
 export function hasWebGL() {
   try {
     const c = document.createElement('canvas');
-    return Boolean(c.getContext('webgl2') || c.getContext('webgl'));
+    const gl = c.getContext('webgl2');
+    gl?.getExtension('WEBGL_lose_context')?.loseContext(); // free it; the renderer makes its own
+    return Boolean(gl);
   } catch {
     return false;
   }

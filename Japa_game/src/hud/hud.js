@@ -332,7 +332,8 @@ export function createHud() {
 
     /**
      * The title screen over the live street.
-     * @param {{ resume: boolean, onStart: () => void, onRestart: () => void, feedbackUrl: string | null }} t
+     * @param {{ resume: boolean, onStart: () => void, onRestart: () => void, feedbackUrl: string | null,
+     *   view: { lite: boolean, onSwitch: () => void } | null }} t `view` is null when only lite can run.
      */
     showTitle(t) {
       const title = el('div', 'title', `
@@ -341,12 +342,14 @@ export function createHud() {
         <button class="go" type="button">${t.resume ? 'Continue your Monday' : 'Start your Monday'}</button>
         ${t.resume ? '<button class="link again" type="button">Start again from 6:43am</button>' : ''}
         <div class="row2"><div class="how">Drag the left side to walk.<br>Tap the yellow button to talk, read or enter.</div>
-        ${t.feedbackUrl ? '<button class="link fb" type="button">Send feedback</button>' : ''}</div>`);
+        ${t.feedbackUrl ? '<button class="link fb" type="button">Send feedback</button>' : ''}</div>
+        ${t.view ? `<button class="link view" type="button">${t.view.lite ? 'Switch to 3D view' : 'Switch to lite view (for slow phones)'}</button>` : ''}`);
       root.appendChild(title);
       const close = () => title.remove();
       /** @type {HTMLElement} */ (title.querySelector('.go')).addEventListener('click', () => { close(); t.onStart(); });
       title.querySelector('.again')?.addEventListener('click', () => { close(); t.onRestart(); });
       title.querySelector('.fb')?.addEventListener('click', () => open(/** @type {string} */ (t.feedbackUrl), '_blank', 'noopener'));
+      title.querySelector('.view')?.addEventListener('click', () => t.view?.onSwitch());
       return close;
     },
 
