@@ -22,7 +22,15 @@ const SAVE_KEY = `japa-slice-1${params.get('slot') ? `-${params.get('slot')}` : 
 if (params.get('fresh') === '1') { try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ } }
 const sim = createSim(sliceContent);
 const hud = createHud();
-const doneLoading = hud.loading('Lagos dey load…');
+// Tester feedback (Tally form q5ZzW2); the build and receipt stamp ride along as hidden fields.
+const FEEDBACK_URL = 'https://tally.so/r/q5ZzW2?build=slice-1';
+const loadingScreen = hud.loading([
+  'Traffic dey Ojuelegba. Lagos dey load…',
+  'Mr Adewale don wake up. E dey wait.',
+  'Generator don start for next compound.',
+  'Danfo conductor: "Ojuelegba! Ojuelegba! Enter with your change!"',
+]);
+THREE.DefaultLoadingManager.onProgress = (_url, loaded, total) => loadingScreen.progress(loaded / total);
 
 // ---------- renderer, scene, light ----------
 let lowGraphics = params.get('low') === '1';
@@ -31,11 +39,29 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, lowGraphics ? 1 : 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = !lowGraphics;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
 document.body.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#F2C99B'); // hazy Lagos morning
-scene.fog = new THREE.Fog('#F2C99B', 38, 110);
+scene.background = skyTexture(); // harmattan morning haze
+scene.fog = new THREE.Fog('#F3D9B6', 40, 115);
+
+/** A vertical gradient sky: warm dust overhead, pale haze at the horizon. */
+function skyTexture() {
+  const c = document.createElement('canvas');
+  c.width = 4; c.height = 256;
+  const g = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+  const grad = g.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, '#D9A878');
+  grad.addColorStop(0.55, '#EDC9A0');
+  grad.addColorStop(1, '#F6E2C4');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 4, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
 const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.3, 200);
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
@@ -303,6 +329,7 @@ function showReceipt() {
         else { await navigator.clipboard.writeText(text); hud.caption('Copied. Paste am for your group chat.'); }
       } catch { /* the player closed the share sheet */ }
     },
+    onFeedback: () => open(`${FEEDBACK_URL}&stamp=${encodeURIComponent(ending.stamp)}`, '_blank', 'noopener'),
     onRetry: () => {
       try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
       location.reload();
@@ -320,11 +347,35 @@ function opening() {
 
 // ---------- the frame loop ----------
 refreshHud();
-doneLoading();
-if (actions.length === 0) opening();
-else if (run.openEvent) openEvent(null);
-else if (run.endingId) showReceipt();
+loadingScreen.done();
 if (actions.length > 0) roomLight.intensity = 0;
+// Title screen over the live street; the camera drifts along it until you start.
+let attract = !run.endingId;
+let coachDone = actions.length > 0;
+/** @type {(() => void) | null} */
+let hideCoach = null;
+const begin = () => {
+  attract = false;
+  document.getElementById('hud')?.classList.remove('attract');
+  cam.rig.interior = where === 'office';
+  cam.snap(where === 'office' && cam.rig.roomCentre ? cam.rig.roomCentre : pos);
+  if (FEEDBACK_URL) hud.feedbackButton(FEEDBACK_URL);
+  if (actions.length === 0) {
+    opening();
+    setTimeout(() => { if (!coachDone) hideCoach = hud.coach(); }, 6200);
+  } else if (run.openEvent) openEvent(null);
+};
+if (run.endingId) showReceipt();
+else {
+  busy = true;
+  document.getElementById('hud')?.classList.add('attract');
+  hud.showTitle({
+    resume: actions.length > 0,
+    feedbackUrl: FEEDBACK_URL,
+    onStart: () => { busy = false; begin(); },
+    onRestart: () => { try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ } location.search = ''; },
+  });
+}
 
 const clock = new THREE.Clock();
 let slowFrames = 0;
@@ -337,6 +388,7 @@ renderer.setAnimationLoop(() => {
   input.setEnabled(!busy);
   hud.setMoving(!busy);
   const dir = input.direction();
+  if (dir.lengthSq() > 0 && !coachDone) { coachDone = true; hideCoach?.(); }
   if (dir.lengthSq() > 0) {
     moveWithCollisions(pos, dir.clone().multiplyScalar(WALK_SPEED * dt), where === 'street' ? street.colliders : office.colliders);
     facing.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(dir.x, dir.z));
@@ -368,14 +420,21 @@ renderer.setAnimationLoop(() => {
   player.mixer.update(dt);
 
   // camera, fades, light that follows the player
-  const head = pos.clone().setY(1.2);
+  const drift = new THREE.Vector3(-18 + ((clock.elapsedTime * 1.4) % 40), 0, -1.5);
+  const head = (attract ? drift : pos).clone().setY(1.2);
   cam.update(dt, {
-    player: pos,
-    moveDir: dir,
+    player: attract ? drift : pos,
+    moveDir: attract ? new THREE.Vector3(1, 0, 0) : dir,
     speaker: talkingTo ? talkingTo.root.position : null,
     walls: where === 'street' ? street.fadeables.map((f) => f.box) : [],
   });
   if (where === 'street') cam.fade(dt, street.fadeables, head);
+  if (attract) {
+    // establishing shot: drift along the street, looking at the shopfronts and their signs
+    const x = -22 + ((clock.elapsedTime * 1.2) % 44);
+    camera.position.set(x, 3.8, 10.5);
+    camera.lookAt(x + 1.2, 0.6, -9);
+  }
   fill.position.copy(camera.position).add(new THREE.Vector3(-2, 1, 0));
   fill.target.position.copy(head);
   rim.position.copy(head).add(head.clone().sub(camera.position).setY(0).setLength(6)).add(new THREE.Vector3(0, 4, 0));

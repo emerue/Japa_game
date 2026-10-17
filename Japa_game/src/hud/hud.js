@@ -84,6 +84,7 @@ export function createHud() {
   let panel = null;
   let lastFunds = -1;
   let lastQuest = '';
+  let lastTarget = '';
 
   return {
     joy,
@@ -116,6 +117,9 @@ export function createHud() {
     /** @param {{ verb: string, label: string } | null} target @param {() => void} handler */
     setAction(target, handler) {
       onAct = handler;
+      const key = target ? `${target.verb}|${target.label}` : '';
+      if (key && key !== lastTarget) { act.classList.remove('ready'); void act.offsetWidth; act.classList.add('ready'); }
+      lastTarget = key;
       act.classList.toggle('hidden', !target);
       if (target) {
         const icon = ICONS[/** @type {keyof typeof ICONS} */ (target.verb)] ?? '✋';
@@ -257,7 +261,7 @@ export function createHud() {
 
     /**
      * @param {{ stamp: string, good: boolean, lesson: string, rows: [string, string][], items: [string, string][], code: string }} r
-     * @param {{ onShare: () => void, onRetry: () => void }} handlers
+     * @param {{ onShare: () => void, onRetry: () => void, onFeedback?: () => void }} handlers
      */
     showReceipt(r, handlers) {
       const wrap = el('div');
@@ -270,20 +274,73 @@ export function createHud() {
         <div class="lesson">LESSON: ${esc(r.lesson)}</div>
         <div style="margin-top:8px;text-align:center">CAN YOU DO BETTER?<br>PLAY JAPA · CODE ${esc(r.code)}</div>
         <div class="rstamp${r.good ? ' good' : ''}">${esc(r.stamp)}</div>`));
-      const actions = el('div', 'actions', '<div class="btn">SHARE RECEIPT</div><div class="btn alt">TRY AGAIN</div>');
+      const actions = el('div', 'actions', '<button class="btn" type="button">Share receipt</button><button class="btn alt" type="button">Try again</button>');
       const [share, retry] = actions.children;
       share.addEventListener('click', handlers.onShare);
       retry.addEventListener('click', handlers.onRetry);
       wrap.appendChild(actions);
+      if (handlers.onFeedback) {
+        const fb = el('button', 'link receipt-fb', 'Tell us what you think');
+        fb.setAttribute('type', 'button');
+        fb.addEventListener('click', handlers.onFeedback);
+        wrap.appendChild(fb);
+      }
       root.appendChild(wrap);
       return () => wrap.remove();
     },
 
-    /** @param {string} text */
-    loading(text) {
-      const l = el('div', 'loading', `<div>JAPA<div class="bar stripes"></div><p>${esc(text)}</p></div>`);
+    /**
+     * The loading screen; the stripes fill as files arrive.
+     * @param {string[]} lines Things to read while Lagos loads.
+     */
+    loading(lines) {
+      const l = el('div', 'loading', `<div class="box"><h1>JAPA</h1><div class="track"><div class="fill stripes"></div></div><p></p></div>`);
       root.appendChild(l);
-      return () => l.remove();
+      const fill = /** @type {HTMLElement} */ (l.querySelector('.fill'));
+      const p = /** @type {HTMLElement} */ (l.querySelector('p'));
+      let i = 0;
+      p.textContent = lines[0];
+      const t = setInterval(() => { p.textContent = lines[++i % lines.length]; }, 2200);
+      return {
+        progress: (/** @type {number} */ f) => { fill.style.width = `${Math.round(f * 100)}%`; },
+        done: () => { clearInterval(t); l.remove(); },
+      };
+    },
+
+    /**
+     * The title screen over the live street.
+     * @param {{ resume: boolean, onStart: () => void, onRestart: () => void, feedbackUrl: string | null }} t
+     */
+    showTitle(t) {
+      const title = el('div', 'title', `
+        <div class="panel"><div class="rivets"><i></i><i></i><i></i></div><h1>JAPA</h1><div class="stripes"></div></div>
+        <div class="words"><p>Everybody get plan. Wetin your own go cost you?</p></div>
+        <button class="go" type="button">${t.resume ? 'Continue your Monday' : 'Start your Monday'}</button>
+        ${t.resume ? '<button class="link again" type="button">Start again from 6:43am</button>' : ''}
+        <div class="row2"><div class="how">Drag the left side to walk.<br>Tap the yellow button to talk, read or enter.</div>
+        ${t.feedbackUrl ? '<button class="link fb" type="button">Send feedback</button>' : ''}</div>`);
+      root.appendChild(title);
+      const close = () => title.remove();
+      /** @type {HTMLElement} */ (title.querySelector('.go')).addEventListener('click', () => { close(); t.onStart(); });
+      title.querySelector('.again')?.addEventListener('click', () => { close(); t.onRestart(); });
+      title.querySelector('.fb')?.addEventListener('click', () => open(/** @type {string} */ (t.feedbackUrl), '_blank', 'noopener'));
+      return close;
+    },
+
+    /** A one-time hint by the joystick until the player first moves. */
+    coach(text = 'Drag here to walk') {
+      const c = el('div', 'coach', esc(text));
+      root.appendChild(c);
+      return () => c.remove();
+    },
+
+    /** A small feedback button in the corner while playing. @param {string} url */
+    feedbackButton(url) {
+      const b = el('button', 'feedback', '💬');
+      b.dataset.ui = '';
+      b.setAttribute('aria-label', 'Send feedback');
+      b.addEventListener('click', () => open(url, '_blank', 'noopener'));
+      root.appendChild(b);
     },
   };
 }

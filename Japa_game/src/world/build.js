@@ -23,6 +23,8 @@ import { makeDanfo } from './danfo.js';
  */
 
 const WALL_T = 0.2;
+let detailSeed = 21;
+const detailRand = () => ((detailSeed = (detailSeed * 16807) % 2147483647) / 2147483647);
 const DOOR_W = 1.1;
 
 /**
@@ -55,14 +57,71 @@ function buildGround(g, zone) {
   const { halfWidth: hw, pavement: pv, length: L } = zone.street;
   const ground = box(g, [L * 1.6, 0.2, 90], [0, -0.1, 0], mat('#B7A283'));
   ground.castShadow = false;
-  box(g, [L * 1.6, 0.04, hw * 2], [0, 0.02, 0], mat('#4A4A4E')).castShadow = false;
+  const road = new THREE.Mesh(new THREE.BoxGeometry(L * 1.6, 0.04, hw * 2), new THREE.MeshLambertMaterial({ map: asphaltTexture(L * 1.6, hw * 2) }));
+  road.position.set(0, 0.02, 0);
+  road.receiveShadow = true;
+  g.add(road);
   for (const side of [-1, 1]) {
-    // pavement, then an open gutter with plank crossings: very Lagos
-    box(g, [L * 1.6, 0.06, pv], [0, 0.03, side * (hw + 0.45 + pv / 2)], mat('#C9B48E')).castShadow = false;
+    // interlocking paving stones, then an open gutter with plank crossings: very Lagos
+    const paving = new THREE.Mesh(new THREE.BoxGeometry(L * 1.6, 0.06, pv), new THREE.MeshLambertMaterial({ map: pavingTexture(L * 1.6, pv) }));
+    paving.position.set(0, 0.03, side * (hw + 0.45 + pv / 2));
+    paving.receiveShadow = true;
+    g.add(paving);
+    box(g, [L * 1.6, 0.12, 0.12], [0, 0.06, side * (hw + 0.5)], mat('#D9D2C3')).castShadow = false; // kerb
     box(g, [L * 1.6, 0.05, 0.5], [0, 0.0, side * (hw + 0.25)], mat('#2B2622')).castShadow = false;
     for (let x = -L / 2; x <= L / 2; x += 9) box(g, [1.2, 0.08, 0.7], [x + side * 2, 0.05, side * (hw + 0.25)], mat('#6B4A2E'));
   }
-  for (let x = -L / 2; x <= L / 2; x += 6) box(g, [2.2, 0.03, 0.22], [x, 0.05, 0], mat('#E8E2D0')).castShadow = false;
+  for (let x = -L / 2; x <= L / 2; x += 6) box(g, [2.2, 0.03, 0.22], [x, 0.05, 0], mat('#E2D9C2')).castShadow = false;
+}
+
+/** Interlocking pavers in grey and faded red, the Lagos pavement. */
+function pavingTexture(/** @type {number} */ lengthM, /** @type {number} */ widthM) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 128;
+  const x = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+  x.fillStyle = '#9C9384';
+  x.fillRect(0, 0, 256, 128);
+  const shades = ['#B4AC9D', '#AEA696', '#A88C7C', '#B2AA9A', '#A9A191'];
+  for (let row = 0; row < 4; row++) {
+    for (let col = -1; col < 9; col++) {
+      x.fillStyle = shades[(row * 3 + col * 7 + 20) % shades.length];
+      const ox = col * 32 + (row % 2) * 16;
+      x.beginPath();
+      x.roundRect(ox + 1.5, row * 32 + 1.5, 29, 29, 4);
+      x.fill();
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(lengthM / 2, widthM / 1);
+  return t;
+}
+
+/** Asphalt with faded patches and a pothole or two. */
+function asphaltTexture(/** @type {number} */ lengthM, /** @type {number} */ widthM) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 128;
+  const x = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+  x.fillStyle = '#4C4945';
+  x.fillRect(0, 0, 512, 128);
+  let seed = 9;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 900; i++) {
+    x.fillStyle = rand() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.08)';
+    x.fillRect(rand() * 512, rand() * 128, 2 + rand() * 3, 2 + rand() * 3);
+  }
+  for (let i = 0; i < 6; i++) {
+    x.fillStyle = rand() < 0.6 ? 'rgba(120,110,95,0.35)' : 'rgba(25,22,20,0.55)';
+    x.beginPath();
+    x.ellipse(rand() * 512, rand() * 128, 10 + rand() * 30, 5 + rand() * 12, rand() * 3, 0, Math.PI * 2);
+    x.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(lengthM / 24, widthM / 8);
+  return t;
 }
 
 /**
@@ -111,6 +170,31 @@ function buildBuilding(g, b, collide, fadeables) {
       box(shell, [1.5, 0.1, 0.25], [off, 1.15 + f * 3, faceZ + b.face * 0.12], wall);
     }
   }
+  // Lagos details people recognise without noticing
+  const plinth = mat(`#${new THREE.Color(b.wall).multiplyScalar(0.62).getHexString()}`, { own: true });
+  if (!b.enterable) box(shell, [b.w + 0.04, 0.55, b.d + 0.04], [0, 0.275, 0], plinth);
+  const bars = mat('#2A2A2A', { own: true });
+  for (let f = 0; f < floors; f++) {
+    for (const off of [-b.w / 3, b.w / 3]) {
+      if (f === 0 && Math.abs(off - doorX) < 1.6) continue;
+      for (let k = -2; k <= 2; k++) box(shell, [0.035, 1.0, 0.035], [off + k * 0.26, 1.7 + f * 3, faceZ + b.face * 0.12], bars);
+    }
+  }
+  const shopSign = (b.signs ?? []).find((s) => (s.y ?? b.h - 0.75) < 4);
+  if (shopSign && !b.enterable) {
+    const awning = box(shell, [b.w - 0.6, 0.06, 1.5], [0, 2.75, faceZ + b.face * 0.75], mat('#A7AFB3', { own: true }));
+    awning.rotation.x = b.face * 0.22;
+    for (const sx of [-1, 1]) box(shell, [0.06, 2.6, 0.06], [sx * (b.w / 2 - 0.5), 1.3, faceZ + b.face * 1.4], bars);
+  }
+  const tank = mat(detailRand() < 0.6 ? '#1E1E1E' : '#2F5D8C', { own: true });
+  const tx = (detailRand() - 0.5) * (b.w - 2), tz = (detailRand() - 0.5) * (b.d - 2);
+  cylinder(shell, 0.55, 0.55, 1.15, [tx, b.h + 0.85, tz], tank, 14);
+  cylinder(shell, 0.2, 0.2, 0.12, [tx, b.h + 1.48, tz], tank, 10);
+  if (b.h > 5 && detailRand() < 0.8) {
+    const dish = cylinder(shell, 0.45, 0.05, 0.12, [-tx * 0.6, b.h + 0.75, -tz * 0.6], mat('#E8E8E8', { own: true }), 14);
+    dish.rotation.set(b.face * 0.9, 0, 0.3);
+  }
+
   for (const s of b.signs ?? []) {
     const w = s.w ?? Math.min(b.w - 1, 7.5);
     const sign = signboard({ ...s, width: w, height: s.sub ? 1.3 : 0.9 });
@@ -219,12 +303,48 @@ function buildStreetLife(g, zone, collide, fadeables) {
   sign.position.set(s.x + 3.6, 2.6, s.z + 0.1);
   g.add(sign);
   cylinder(g, 0.05, 0.05, 2.1, [s.x + 3.6, 1.05, s.z], mat('#6B6B6B'), 6);
-  // light poles with sagging wires along the south pavement
-  for (let x = -34; x <= 34; x += 12) cylinder(g, 0.07, 0.09, 6.5, [x, 3.25, 6.8], mat('#7A7A7A'), 6);
+  // light poles with sagging cables, the Lagos sky's handwriting
+  const poles = [];
+  for (let x = -34; x <= 34; x += 12) {
+    cylinder(g, 0.07, 0.09, 6.5, [x, 3.25, 6.8], mat('#7A7A7A'), 6);
+    box(g, [1.2, 0.08, 0.08], [x, 6.2, 6.8], mat('#5A5A5A'));
+    poles.push(x);
+  }
+  const cable = new THREE.LineBasicMaterial({ color: '#2A2522' });
+  for (let i = 0; i < poles.length - 1; i++) {
+    for (const dz of [-0.5, 0, 0.5]) {
+      const a0 = new THREE.Vector3(poles[i], 6.15, 6.8 + dz), a1 = new THREE.Vector3(poles[i + 1], 6.15, 6.8 + dz);
+      const mid = a0.clone().lerp(a1, 0.5).add(new THREE.Vector3(0, -0.9 - Math.abs(dz), 0));
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(new THREE.QuadraticBezierCurve3(a0, mid, a1).getPoints(14)), cable));
+    }
+    // a drop line across the street to the north buildings
+    const from = new THREE.Vector3(poles[i] + 3, 6.1, 6.8), to = new THREE.Vector3(poles[i] + 5, 4.2, -7);
+    const sag = from.clone().lerp(to, 0.5).add(new THREE.Vector3(0, -1.2, 0));
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(new THREE.QuadraticBezierCurve3(from, sag, to).getPoints(14)), cable));
+  }
+  buildKeke(g, zone.busStop.x - 4.5, zone.busStop.z + 1.6, collide);
   // the stairs up to Dr. Bayo's office, on the pharmacy's east side
   for (let i = 0; i < 8; i++) box(g, [1.1, 0.2, 0.45], [15.2, 0.2 + i * 0.38, -7.6 - i * 0.45], mat('#9C8F86'));
   box(g, [0.06, 1.0, 3.8], [15.8, 2.1, -9.1], mat('#5B3A24'));
   collide(14.6, -11.3, 15.8, -7.9);
+}
+
+/** A keke (tricycle taxi): yellow body, black canopy, three wheels. */
+function buildKeke(/** @type {THREE.Group} */ g, /** @type {number} */ x, /** @type {number} */ z, /** @type {(x0: number, z0: number, x1: number, z1: number) => void} */ collide) {
+  const k = new THREE.Group();
+  box(k, [1.2, 0.8, 2.2], [0, 0.75, 0], mat('#F2B705'));
+  box(k, [1.25, 0.08, 2.0], [0, 1.85, -0.1], mat('#191B1E'));
+  for (const sx of [-0.55, 0.55]) box(k, [0.05, 0.75, 0.05], [sx, 1.45, 0.6], mat('#191B1E'));
+  box(k, [0.05, 0.75, 1.0], [0, 1.45, -0.9], mat('#191B1E'));
+  box(k, [1.0, 0.5, 0.05], [0, 1.45, 1.05], mat('#22313A'));
+  box(k, [1.22, 0.1, 2.22], [0, 0.95, 0], mat('#191B1E'));
+  for (const [wx, wz] of [[0, 1.1], [-0.6, -0.8], [0.6, -0.8]]) {
+    cylinder(k, 0.25, 0.25, 0.16, [wx, 0.25, wz], mat('#151515'), 12).rotation.z = Math.PI / 2;
+  }
+  k.position.set(x, 0, z);
+  k.rotation.y = Math.PI / 2;
+  g.add(k);
+  collide(x - 1.2, z - 0.7, x + 1.2, z + 0.7);
 }
 
 /** Lekki/VI towers and Third Mainland Bridge on the horizon, not walkable. */

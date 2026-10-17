@@ -18,7 +18,7 @@ const cache = new Map();
 function load(model) {
   let p = cache.get(model);
   if (!p) {
-    p = loader.loadAsync(`${BASE}${model}.gltf`);
+    p = loader.loadAsync(`${BASE}${model}.glb`); // packed by tools/pack_characters.py
     cache.set(model, p);
   }
   return p;
