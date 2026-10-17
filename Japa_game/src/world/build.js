@@ -43,7 +43,7 @@ export function buildZone(zone) {
   buildGround(group, zone);
   for (const b of zone.buildings) buildBuilding(group, b, collide, fadeables);
   buildCompound(group, zone.compound, collide, fadeables);
-  buildRoomInterior(group);
+  buildRoomInterior(group, collide);
   buildStreetLife(group, zone, collide, fadeables);
   buildSkyline(group);
   return { group, colliders, fadeables };
@@ -112,9 +112,9 @@ function asphaltTexture(/** @type {number} */ lengthM, /** @type {number} */ wid
     x.fillRect(rand() * 512, rand() * 128, 2 + rand() * 3, 2 + rand() * 3);
   }
   for (let i = 0; i < 6; i++) {
-    x.fillStyle = rand() < 0.6 ? 'rgba(120,110,95,0.35)' : 'rgba(25,22,20,0.55)';
+    x.fillStyle = rand() < 0.7 ? 'rgba(120,110,95,0.22)' : 'rgba(25,22,20,0.28)';
     x.beginPath();
-    x.ellipse(rand() * 512, rand() * 128, 10 + rand() * 30, 5 + rand() * 12, rand() * 3, 0, Math.PI * 2);
+    x.ellipse(rand() * 512, rand() * 128, 5 + rand() * 12, 3 + rand() * 6, rand() * 3, 0, Math.PI * 2);
     x.fill();
   }
   const t = new THREE.CanvasTexture(c);
@@ -253,7 +253,7 @@ function buildCompound(g, c, collide, fadeables) {
 }
 
 /** Your room: a mattress on the floor, a plastic table, a standing fan, a bucket. */
-function buildRoomInterior(/** @type {THREE.Group} */ g) {
+function buildRoomInterior(/** @type {THREE.Group} */ g, /** @type {(x0: number, z0: number, x1: number, z1: number) => void} */ collide) {
   const r = new THREE.Group();
   box(r, [4.6, 0.02, 4.2], [0, 0.01, 0], mat('#8C6A4A'));
   box(r, [1.9, 0.25, 2.1], [-1.2, 0.13, 0.8], mat('#E8E2D0'));
@@ -266,6 +266,8 @@ function buildRoomInterior(/** @type {THREE.Group} */ g) {
   cylinder(r, 0.25, 0.2, 0.4, [-1.9, 0.2, -1.6], mat('#2F7D3B'), 12);
   r.position.set(-19.5, 0, 15.5);
   g.add(r);
+  collide(-21.65, 15.25, -19.75, 17.35); // mattress
+  collide(-18.55, 16.6, -17.65, 17.2); // table
 }
 
 /**

@@ -22,7 +22,7 @@ Source: the Tally form **q5ZzW2** ("JAPA tester feedback"), read with the Tally 
    - _praise_: what worked. Keep these; they say what to protect.
    Done when every response is accounted for: each has at least one observation or is marked "nothing actionable".
 
-3. **Cluster** observations that share a root cause into one issue, named by the player's problem ("No idea where to go after the voice note"), not by the fix.
+3. **Cluster** observations that share a root cause into one issue, named by the player's problem ("No idea where to go after the voice note"), not by the fix. Then read `docs/feedback/fixed.md`: for an issue listed there, keep only observations from builds after the one it was fixed in (builds count up: slice-1, slice-2, …; a `-lite` suffix means the 2D lite view). If none remain, move the issue to a "Fixed, watching" list instead of ranking it; if some remain, rank it and say the fix didn't fully work.
 
 4. **Score** each issue:
    - **Reach** = testers who hit it ÷ all testers (0–1).
@@ -49,6 +49,9 @@ Source: the Tally form **q5ZzW2** ("JAPA tester feedback"), read with the Tally 
 
    ## How far testers got
    Room <n> · Landlord <n> · Office <n> · Receipt <n>. Stamps: SCAMMED <n>, SAVED <n>, EXPOSED <n>. Want the next part: average <x.x>/5.
+
+   ## Fixed, watching
+   - <issue> (fixed in <build>): <n> reports since, or none
 
    ## What's working
    - <praise, with a quote>

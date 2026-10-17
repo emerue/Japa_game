@@ -27,7 +27,32 @@ Engine                            Built for cards (Stage/Event/Meter/Archetype
                                   re-cast as Events triggered in the World.
 Vertical slice                    Live for testers at
                                   https://japa.45-77-62-61.sslip.io
-                                  Not yet: lite 2D mode, share image, sound.
+                                  Build slice-2: arrow, lite mode, sound,
+                                  receipt picture.
+
+====================================================================
+SAT 17 OCT 2026 (late): fixed what was left, build slice-2 live
+====================================================================
+- Arrow to the next goal (top tester issue): an SVG arrow pinned to the
+  screen edge with the distance, pointing along the ground direction (the
+  camera never turns, so world directions map straight onto the screen).
+  A CSS border-triangle version was hard to read at odd angles; replaced.
+  Quest hints now say which way to go. Recorded in docs/feedback/fixed.md;
+  /triage-feedback ignores pre-fix reports of fixed issues.
+- Lite mode (PRD Q25): src/world/lite.js draws the same World top-down in
+  2D when WebGL is missing (or ?lite=1). Same sim, save, controls, HUD; no
+  3D model download. The dev Mac now runs the game (headless Chrome).
+- Receipt shares as a 1080x1350 picture (src/hud/receipt-image.js).
+- Sound synthesised with Web Audio (src/audio.js): street hum, generator,
+  danfo horns, UI sounds; mute button always visible, remembered.
+- Fonts self-hosted (assets/fonts, 76 KB). Python's urllib hits the same
+  TLS certificate error as npm on this Mac; curl works.
+- Eye whites (skinned to the head), furniture collisions, rounded danfo
+  nose, "NO FOOD FOR LAZY MAN" slogan, a conductor at the bus stop,
+  fainter potholes, top bar kept on one line, friendlier error box.
+- tools/dev_server.py: no-cache local server, so the phone never runs
+  stale code during tests.
+- Build id slice-2 (feedback hidden field; "-lite" suffix in lite mode).
 
 ====================================================================
 SAT 17 OCT 2026 (night): design pass, deployed for testers

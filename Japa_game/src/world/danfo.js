@@ -3,6 +3,7 @@
 // Boxy van, short sloped nose, two black side stripes, window band, open
 // sliding door on the kerb side, roof rack with luggage, dented bumpers.
 import * as THREE from 'three';
+import { signboard } from './kit.js';
 
 const mat = (/** @type {string} */ c, extra = {}) => new THREE.MeshLambertMaterial({ color: c, ...extra });
 /** @param {THREE.Object3D} parent @param {THREE.BufferGeometry} geo @param {THREE.Material} material */
@@ -73,6 +74,13 @@ export function makeDanfo() {
     add(g, new THREE.CylinderGeometry(0.36, 0.36, 0.28, 14), D.black, x, 0.36, z, 0, 0, Math.PI / 2);
     add(g, new THREE.CylinderGeometry(0.16, 0.16, 0.3, 10), D.grey, x, 0.36, z, 0, 0, Math.PI / 2);
   }
+  // the rounded nose of the old Volkswagen bus
+  add(g, new THREE.CylinderGeometry(0.42, 0.42, W, 16, 1, false, 0, Math.PI / 2), D.yellow, 0, 0.8, zFront - 0.41, 0, 0, Math.PI / 2);
+  // a painted slogan on the back
+  const slogan = signboard({ text: 'NO FOOD FOR LAZY MAN', bg: '#F2B705', fg: '#191B1E', accent: '#F2B705', width: 1.5, height: 0.32 });
+  slogan.position.set(0, 1.2, zBack - 0.035);
+  slogan.rotation.y = Math.PI;
+  g.add(slogan);
   // side mirrors
   for (const s of [-1, 1]) add(g, B(0.12, 0.18, 0.06), D.black, s * (W / 2 + 0.12), 1.45, zFront - nose - 0.05);
   return g;

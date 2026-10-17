@@ -7,10 +7,13 @@ import { createSim } from './sim/engine.js';
 import { sliceContent } from './content/slice.js';
 import { zone, agentOffice } from './world/zone.js';
 import { buildZone, buildOffice } from './world/build.js';
-import { makePerson } from './world/people.js';
+import { makePerson, SKIN_TONES } from './world/people.js';
+import { createLiteView, hasWebGL } from './world/lite.js';
 import { createCameraRig } from './world/camera.js';
 import { createInput, moveWithCollisions, WALK_SPEED } from './world/movement.js';
 import { createHud } from './hud/hud.js';
+import { shareReceipt } from './hud/receipt-image.js';
+import { createAudio } from './audio.js';
 import { naira, clockLabel } from './sim/engine.js';
 
 /** @typedef {import('./sim/types.js').RunState} RunState */
@@ -22,8 +25,10 @@ const SAVE_KEY = `japa-slice-1${params.get('slot') ? `-${params.get('slot')}` : 
 if (params.get('fresh') === '1') { try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ } }
 const sim = createSim(sliceContent);
 const hud = createHud();
+const audio = createAudio();
+hud.muteButton(audio.muted, () => audio.toggleMute());
 // Tester feedback (Tally form q5ZzW2); the build and receipt stamp ride along as hidden fields.
-const FEEDBACK_URL = 'https://tally.so/r/q5ZzW2?build=slice-1';
+const BUILD = 'slice-2';
 const loadingScreen = hud.loading([
   'Traffic dey Ojuelegba. Lagos dey load…',
   'Mr Adewale don wake up. E dey wait.',
@@ -33,15 +38,23 @@ const loadingScreen = hud.loading([
 THREE.DefaultLoadingManager.onProgress = (_url, loaded, total) => loadingScreen.progress(loaded / total);
 
 // ---------- renderer, scene, light ----------
+// Lite mode (PRD Q25): phones without WebGL get the same game drawn top-down in 2D.
+const LITE = params.get('lite') === '1' || !hasWebGL();
+const FEEDBACK_URL = `https://tally.so/r/q5ZzW2?build=${BUILD}${LITE ? '-lite' : ''}`;
 let lowGraphics = params.get('low') === '1';
-const renderer = new THREE.WebGLRenderer({ antialias: !lowGraphics, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, lowGraphics ? 1 : 1.5));
-renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = !lowGraphics;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
-document.body.prepend(renderer.domElement);
+/** @type {THREE.WebGLRenderer | null} */
+const renderer = LITE ? null : new THREE.WebGLRenderer({ antialias: !lowGraphics, powerPreference: 'high-performance' });
+if (renderer) {
+  renderer.setPixelRatio(Math.min(devicePixelRatio, lowGraphics ? 1 : 1.5));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = !lowGraphics;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  document.body.prepend(renderer.domElement);
+}
+const liteCanvas = document.createElement('canvas');
+if (LITE) document.body.prepend(liteCanvas);
 
 const scene = new THREE.Scene();
 scene.background = skyTexture(); // harmattan morning haze
@@ -66,7 +79,7 @@ const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.3, 20
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer?.setSize(innerWidth, innerHeight);
 });
 scene.add(new THREE.HemisphereLight('#FFF4E0', '#8A6A4A', 1.5));
 const sun = new THREE.DirectionalLight('#FFE2B8', 2.3);
@@ -83,17 +96,29 @@ await Promise.all(['400 40px Bungee', '700 20px Archivo', '500 13px "IBM Plex Mo
 const street = buildZone(zone);
 const office = buildOffice(agentOffice);
 scene.add(street.group, office.group);
+const lite = LITE ? createLiteView(liteCanvas, zone, agentOffice) : null;
 const roomLight = new THREE.PointLight('#FFD58A', 6, 6);
 roomLight.position.set(-19.5, 2.6, 15.5);
 scene.add(roomLight);
 
 const [ox, oz] = agentOffice.origin;
-const player = await makePerson({ model: 'Casual_Hoodie', tone: 1, anim: 'Idle' });
+/**
+ * Lite mode skips the 3D models (and their download): a stand-in with a position.
+ * @param {Parameters<typeof makePerson>[0]} spec
+ * @returns {Promise<Character>}
+ */
+const person = async (spec) => {
+  if (!LITE) return makePerson(spec);
+  const stand = { root: new THREE.Object3D(), mixer: /** @type {THREE.AnimationMixer} */ (/** @type {unknown} */ ({ update() {} })), current: spec.anim,
+    play(/** @type {string} */ name) { stand.current = name; } };
+  return stand;
+};
+const player = await person({ model: 'Casual_Hoodie', tone: 1, anim: 'Idle' });
 scene.add(player.root);
 /** @type {{ spec: import('./world/zone.js').Person, char: Character, office: boolean }[]} */
 const people = await Promise.all([
-  ...zone.people.map(async (spec) => ({ spec, char: await makePerson(spec), office: false })),
-  ...agentOffice.people.map(async (spec) => ({ spec, char: await makePerson(spec), office: true })),
+  ...zone.people.map(async (spec) => ({ spec, char: await person(spec), office: false })),
+  ...agentOffice.people.map(async (spec) => ({ spec, char: await person(spec), office: true })),
 ]);
 for (const p of people) {
   const [x, z] = p.office ? [ox + p.spec.at[0], oz + p.spec.at[1]] : p.spec.at;
@@ -135,6 +160,7 @@ let busy = false; // an Event, transition or receipt is on screen
 
 /** @param {THREE.Vector3} v @returns {import('./hud/hud.js').ScreenPoint} */
 function toScreen(v) {
+  if (lite) return lite.project(v);
   const p = v.clone().project(camera);
   if (p.z > 1) return null;
   return { x: (p.x * 0.5 + 0.5) * innerWidth, y: (-p.y * 0.5 + 0.5) * innerHeight };
@@ -147,6 +173,21 @@ function refreshHud() {
   const quest = where === 'office' && run.quests['voice-note'] === 'active' ? sliceContent.quests['voice-note'] : sim.currentQuest(run);
   hud.setQuest(run.endingId ? null : quest);
   hud.setRedFlags(where === 'office' ? sim.redFlagsSpotted(run) : null, sliceContent.redFlags.length);
+}
+
+// ---------- the arrow to your next goal ----------
+/** @returns {THREE.Vector3 | null} */
+function questTargetPosition() {
+  if (run.endingId || busy) return null;
+  const quest = where === 'office' && run.quests['voice-note'] === 'active' ? sliceContent.quests['voice-note'] : sim.currentQuest(run);
+  const t = quest && zone.questTargets[quest.id]?.[where];
+  if (!t) return null;
+  if ('person' in t && t.person) {
+    const p = people.find((q) => q.spec.id === t.person);
+    return p ? p.char.root.position.clone().setY(1.6) : null;
+  }
+  const spot = 'spot' in t && t.spot ? zone.spots.find((sp) => sp.id === t.spot) : null;
+  return spot ? new THREE.Vector3(spot.at[0], 1, spot.at[1]) : null;
 }
 
 // ---------- interactions ----------
@@ -218,6 +259,8 @@ function act(action, who) {
 function afterAction(who) {
   refreshHud();
   const fb = run.feedback;
+  if (fb?.stamp) audio.stamp();
+  else if (fb?.delta.funds) audio.cash();
   if (fb) {
     hud.floatDeltas(fb.delta, headOf(player, 2.3)());
     if (fb.stamp) hud.stamp(fb.stamp, fb.stamp !== 'RED FLAG');
@@ -248,8 +291,9 @@ function openEvent(who) {
   busy = true;
   const ev = sliceContent.events[/** @type {string} */ (run.openEvent)];
   const options = sim.choices(run);
-  const choose = (/** @type {number} */ i) => act({ type: 'choose', index: i }, talkingTo);
+  const choose = (/** @type {number} */ i) => { audio.tap(); act({ type: 'choose', index: i }, talkingTo); };
   if (ev.id === 'voice-note') {
+    audio.buzz();
     phone?.close();
     const p = hud.showPhone({
       title: 'FAMILY & FRIENDS',
@@ -277,6 +321,7 @@ function openEvent(who) {
 /** @param {{ id: string, person?: Character }} t */
 async function interact(t) {
   if (busy) return;
+  audio.tap();
   if (t.id === 'pharmacy-stairs') {
     if (!run.flags.includes('know_agent')) { hud.say('Na office upstairs. You no get business there yet.', headOf(player)); return; }
     return goTo('office');
@@ -291,10 +336,12 @@ async function goTo(next) {
   await hud.fade(true);
   where = next;
   cam.rig.interior = next === 'office';
+  audio.setIndoors(next === 'office');
   if (next === 'office') pos.set(ox + agentOffice.playerStart[0], 0, oz + agentOffice.playerStart[1]);
   else pos.set(15.4, 0, -5.6);
   player.root.rotation.y = Math.PI;
   cam.snap(next === 'office' && cam.rig.roomCentre ? cam.rig.roomCentre : pos);
+  lite?.snap(pos);
   refreshHud();
   save();
   await hud.fade(false);
@@ -306,6 +353,7 @@ async function goTo(next) {
 function showReceipt() {
   const ending = sim.ending(run);
   if (!ending) return;
+  audio.receipt();
   const code = seed.toString(36).slice(-4).toUpperCase();
   /** @type {[string, string][]} */
   const items = run.receipt.map((l) => [l.text, l.kobo === undefined ? '' : naira(l.kobo)]);
@@ -314,20 +362,20 @@ function showReceipt() {
   else items.push(['MONEY SAVED FROM AGENT', '₦300,000']);
   items.push(['MONEY LEFT', naira(run.resources.funds)]);
   hud.setQuest(null);
-  hud.showReceipt({
+  const receipt = {
     stamp: ending.stamp,
     good: ending.id !== 'scammed',
     lesson: ending.lesson,
-    rows: [['CUSTOMER', 'YOU'], ['DATE', clockLabel(run.clock)], ['MERCHANT', 'DR. BAYO VISA CONSULT']],
+    rows: /** @type {[string, string][]} */ ([['CUSTOMER', 'YOU'], ['DATE', clockLabel(run.clock)], ['MERCHANT', 'DR. BAYO VISA CONSULT']]),
     items,
     code,
-  }, {
+  };
+  hud.showReceipt(receipt, {
     onShare: async () => {
-      const text = `My JAPA Receipt: ${ending.stamp}. ${ending.lesson} Red flags spotted: ${sim.redFlagsSpotted(run)}/3. Can you do better? Code ${code}`;
-      try {
-        if (navigator.share) await navigator.share({ title: 'My JAPA Receipt', text, url: location.origin + location.pathname });
-        else { await navigator.clipboard.writeText(text); hud.caption('Copied. Paste am for your group chat.'); }
-      } catch { /* the player closed the share sheet */ }
+      const link = location.origin + location.pathname;
+      const text = `My JAPA Receipt: ${ending.stamp}. Red flags spotted: ${sim.redFlagsSpotted(run)}/3. Can you do better? ${link}`;
+      const result = await shareReceipt({ ...receipt, url: location.host }, text);
+      if (result === 'saved') hud.caption('Receipt saved to your phone. Post am for your status.');
     },
     onFeedback: () => open(`${FEEDBACK_URL}&stamp=${encodeURIComponent(ending.stamp)}`, '_blank', 'noopener'),
     onRetry: () => {
@@ -342,7 +390,7 @@ function opening() {
   busy = true;
   hud.caption('₦48,500 for your name. Rent: ₦150,000.', 'MONDAY · 6:43AM', 3200);
   setTimeout(() => { roomLight.intensity = 0; hud.caption('NEPA don take light.', undefined, 2200); }, 3400);
-  setTimeout(() => { hud.caption('Somebody don on generator. Your phone dey buzz.', undefined, 2600); busy = false; }, 5800);
+  setTimeout(() => { hud.caption('Somebody don on generator. Your phone dey buzz.', undefined, 2600); audio.startGenerator(); audio.buzz(); busy = false; }, 5800);
 }
 
 // ---------- the frame loop ----------
@@ -355,6 +403,9 @@ let coachDone = actions.length > 0;
 /** @type {(() => void) | null} */
 let hideCoach = null;
 const begin = () => {
+  audio.start();
+  if (actions.length > 0) audio.startGenerator();
+  audio.setIndoors(where === 'office');
   attract = false;
   document.getElementById('hud')?.classList.remove('attract');
   cam.rig.interior = where === 'office';
@@ -375,13 +426,14 @@ else {
     onStart: () => { busy = false; begin(); },
     onRestart: () => { try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ } location.search = ''; },
   });
+  if (params.get('start') === '1') document.querySelector('#hud .title .go')?.dispatchEvent(new MouseEvent('click')); // development: skip the title
 }
 
 const clock = new THREE.Clock();
 let slowFrames = 0;
 let lastSave = 0;
 const facing = new THREE.Quaternion();
-renderer.setAnimationLoop(() => {
+const frame = () => {
   const dt = Math.min(clock.getDelta(), 0.1);
 
   // move the player (no walking while talking or reading)
@@ -428,7 +480,7 @@ renderer.setAnimationLoop(() => {
     speaker: talkingTo ? talkingTo.root.position : null,
     walls: where === 'street' ? street.fadeables.map((f) => f.box) : [],
   });
-  if (where === 'street') cam.fade(dt, street.fadeables, head);
+  if (where === 'street' && !lite) cam.fade(dt, street.fadeables, head);
   if (attract) {
     // establishing shot: drift along the street, looking at the shopfronts and their signs
     const x = -22 + ((clock.elapsedTime * 1.2) % 44);
@@ -442,10 +494,46 @@ renderer.setAnimationLoop(() => {
   sun.position.copy(head).add(new THREE.Vector3(14, 26, 8));
   sun.target.position.copy(head);
   hud.track();
-  renderer.render(scene, camera);
+  const goal = attract ? null : questTargetPosition();
+  if (goal) {
+    const p = toScreen(goal);
+    const onScreen = p !== null && p.x > 40 && p.x < innerWidth - 40 && p.y > 160 && p.y < innerHeight - 200;
+    hud.setPointer({ dx: goal.x - pos.x, dz: goal.z - pos.z, metres: Math.hypot(goal.x - pos.x, goal.z - pos.z), onScreen });
+  } else hud.setPointer(null);
+  if (renderer) renderer.render(scene, camera);
+  else lite?.render(liteFrame(all, attract ? drift : pos));
 
   // drop to low graphics on weak phones (keeps movement and interaction)
-  if (!lowGraphics && dt > 1 / 24) { if (++slowFrames > 90) { lowGraphics = true; renderer.shadowMap.enabled = false; renderer.setPixelRatio(1); } }
+  if (renderer && !lowGraphics && dt > 1 / 24) { if (++slowFrames > 90) { lowGraphics = true; renderer.shadowMap.enabled = false; renderer.setPixelRatio(1); } }
   else slowFrames = Math.max(0, slowFrames - 1);
   if (clock.elapsedTime - lastSave > 3) { lastSave = clock.elapsedTime; save(); }
-});
+};
+if (renderer) renderer.setAnimationLoop(frame);
+else (function tick() { frame(); requestAnimationFrame(tick); })();
+
+/**
+ * What the lite view draws this frame.
+ * @param {ReturnType<typeof targets>} all @param {THREE.Vector3} focus
+ * @returns {import('./world/lite.js').LiteFrame}
+ */
+function liteFrame(all, focus) {
+  const avail = new Set(all.map((t) => t.id));
+  const inRoom = zone.buildings.find((b) => b.enterable && Math.abs(pos.x - b.x) < b.w / 2 && Math.abs(pos.z - b.z) < b.d / 2);
+  return {
+    focus: where === 'office' ? { x: ox, z: oz + 0.6 } : { x: focus.x, z: focus.z },
+    where,
+    player: { x: pos.x, z: pos.z, heading: player.root.rotation.y },
+    people: people.filter((p) => p.office === (where === 'office')).map((p) => {
+      const id = [p.spec.interactable, ...(p.spec.also ?? [])].find((i) => i && avail.has(i));
+      return {
+        x: p.char.root.position.x, z: p.char.root.position.z,
+        skin: SKIN_TONES[p.spec.tone],
+        outfit: Object.values(p.spec.look?.outfit ?? {})[0] ?? '#6B6B6B',
+        label: id ? sliceContent.interactables[id].label : undefined,
+      };
+    }),
+    markers: busy ? [] : all.filter((t) => !t.person).map((t) => ({ x: t.at.x, z: t.at.z })),
+    insideRoom: Boolean(inRoom),
+    time: clock.elapsedTime,
+  };
+}

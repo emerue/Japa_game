@@ -47,6 +47,8 @@ export async function makePerson(spec) {
   const glow = THREE.MathUtils.clamp(0.55 - tone.getHSL({ h: 0, s: 0, l: 0 }).l, 0.15, 0.42);
   const hair = new THREE.Color(spec.look?.hair && spec.look.hair !== 'none' ? spec.look.hair : HAIR);
 
+  /** @type {THREE.SkinnedMesh[]} */
+  const eyeWhites = [];
   root.traverse((o) => {
     if (o.name === 'Pistol') o.visible = false; // the Suit model ships holding one
     if (!(o instanceof THREE.Mesh)) return;
@@ -66,11 +68,14 @@ export async function makePerson(spec) {
     } else if (name === 'Eye') {
       own.color.set('#050302');
       own.roughness = 0.15;
+      if (o instanceof THREE.SkinnedMesh) eyeWhites.push(o);
     } else if (spec.look?.outfit?.[name]) {
       own.color.set(spec.look.outfit[name]);
     }
     o.material = own;
   });
+
+  for (const eye of eyeWhites) addEyeWhites(eye);
 
   const mixer = new THREE.AnimationMixer(root);
   /** @type {Record<string, THREE.AnimationAction>} */
@@ -91,4 +96,44 @@ export async function makePerson(spec) {
   person.play(spec.anim, 0);
   mixer.update(Math.random() * 2); // so a crowd doesn't move in step
   return person;
+}
+
+const WHITE = new THREE.MeshStandardMaterial({ color: '#F2EEE6', roughness: 0.35, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
+
+/**
+ * The base models' eyes are dark pupils only, which vanish on the deepest skin
+ * tones. Add a slightly larger white behind each pupil, skinned to the same
+ * bones so it follows the head (PRD Q34).
+ * @param {THREE.SkinnedMesh} eye
+ */
+function addEyeWhites(eye) {
+  const geo = eye.geometry.clone();
+  const posAttr = geo.getAttribute('position');
+  // the two eyes sit either side of the face's centre line (local x)
+  const sides = [{ n: 0, c: new THREE.Vector3(), min: new THREE.Vector3(Infinity, Infinity, Infinity), max: new THREE.Vector3(-Infinity, -Infinity, -Infinity) },
+    { n: 0, c: new THREE.Vector3(), min: new THREE.Vector3(Infinity, Infinity, Infinity), max: new THREE.Vector3(-Infinity, -Infinity, -Infinity) }];
+  const v = new THREE.Vector3();
+  for (let i = 0; i < posAttr.count; i++) {
+    v.fromBufferAttribute(posAttr, i);
+    const s = sides[v.x < 0 ? 0 : 1];
+    s.n++; s.c.add(v); s.min.min(v); s.max.max(v);
+  }
+  for (const s of sides) if (s.n) s.c.divideScalar(s.n);
+  for (let i = 0; i < posAttr.count; i++) {
+    v.fromBufferAttribute(posAttr, i);
+    const s = sides[v.x < 0 ? 0 : 1];
+    const depth = s.max.z - s.min.z;
+    v.set(s.c.x + (v.x - s.c.x) * 1.7, s.c.y + (v.y - s.c.y) * 1.3, v.z - depth * 0.35);
+    posAttr.setXYZ(i, v.x, v.y, v.z);
+  }
+  posAttr.needsUpdate = true;
+  geo.computeVertexNormals();
+  const white = new THREE.SkinnedMesh(geo, WHITE);
+  white.frustumCulled = false;
+  white.castShadow = false;
+  eye.parent?.add(white);
+  white.position.copy(eye.position);
+  white.quaternion.copy(eye.quaternion);
+  white.scale.copy(eye.scale);
+  white.bind(eye.skeleton, eye.bindMatrix);
 }

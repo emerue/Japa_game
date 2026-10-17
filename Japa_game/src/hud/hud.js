@@ -72,7 +72,9 @@ export function createHud() {
   act.dataset.ui = '';
   const layer = el('div'); // bubbles, floats
   const fader = el('div', 'fade');
-  root.append(top, quest, flags, joy, act, layer, fader);
+  const pointer = el('div', 'pointer', '<div class="arrow"><svg viewBox="-12 -12 24 24" width="26" height="26" aria-hidden="true"><path d="M-9 -2.6 H1.5 V-7.5 L10 0 L1.5 7.5 V2.6 H-9 Z" fill="#191B1E"/></svg></div><div class="dist"></div>');
+  pointer.style.opacity = '0';
+  root.append(top, quest, flags, pointer, joy, act, layer, fader);
 
   /** @type {(() => void) | null} */
   let onAct = null;
@@ -125,6 +127,27 @@ export function createHud() {
         const icon = ICONS[/** @type {keyof typeof ICONS} */ (target.verb)] ?? '✋';
         act.innerHTML = `<div class="who">${esc(target.label)}</div><div><span>${icon}</span>${esc(target.verb.toUpperCase())}</div>`;
       }
+    },
+
+    /**
+     * The arrow to the current goal, pinned to the screen edge while the goal is off screen.
+     * The camera never turns (PRD Q21), so a direction on the ground maps straight onto
+     * the screen: +x is right, +z is down.
+     * @param {{ dx: number, dz: number, metres: number, onScreen: boolean } | null} goal
+     */
+    setPointer(goal) {
+      if (!goal || goal.onScreen || goal.metres < 2) { pointer.style.opacity = '0'; return; }
+      const top = 160, bottom = innerHeight - 200, left = 40, right = innerWidth - 40;
+      const cx = innerWidth / 2, cy = (top + bottom) / 2;
+      const len = Math.hypot(goal.dx, goal.dz) || 1;
+      const ux = goal.dx / len, uy = goal.dz / len;
+      const k = Math.min(Math.abs((ux > 0 ? right - cx : left - cx) / (ux || 1e-6)), Math.abs((uy > 0 ? bottom - cy : top - cy) / (uy || 1e-6)));
+      pointer.style.left = `${cx + ux * k}px`;
+      pointer.style.top = `${cy + uy * k}px`;
+      // the arrow is drawn pointing right (+x), so rotate by the plain angle
+      /** @type {HTMLElement} */ (pointer.querySelector('svg')).style.transform = `rotate(${Math.atan2(uy, ux)}rad)`;
+      /** @type {HTMLElement} */ (pointer.lastElementChild).textContent = `${Math.round(goal.metres)} m`;
+      pointer.style.opacity = '1';
     },
 
     /** @param {boolean} on */
@@ -332,6 +355,16 @@ export function createHud() {
       const c = el('div', 'coach', esc(text));
       root.appendChild(c);
       return () => c.remove();
+    },
+
+    /** The mute button, always visible. @param {boolean} muted @param {() => boolean} toggle Returns the new state. */
+    muteButton(muted, toggle) {
+      const b = el('button', 'mute', muted ? '🔇' : '🔊');
+      b.dataset.ui = '';
+      const label = (/** @type {boolean} */ m) => b.setAttribute('aria-label', m ? 'Turn sound on' : 'Mute sound');
+      label(muted);
+      b.addEventListener('click', () => { const m = toggle(); b.textContent = m ? '🔇' : '🔊'; label(m); });
+      root.appendChild(b);
     },
 
     /** A small feedback button in the corner while playing. @param {string} url */

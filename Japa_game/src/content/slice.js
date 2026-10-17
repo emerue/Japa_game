@@ -23,9 +23,9 @@ export const sliceContent = {
 
   // Listed in the order the quest strip shows them.
   quests: {
-    morning: { id: 'morning', title: 'MONDAY MORNING', hint: 'Your phone dey buzz. Check am.' },
-    'rent-due': { id: 'rent-due', title: 'RENT IS DUE', hint: 'Mr Adewale dey wait for you for gate' },
-    'voice-note': { id: 'voice-note', title: 'THE VOICE NOTE', hint: 'Find Dr. Bayo. Upstairs Mercy Pharmacy.' },
+    morning: { id: 'morning', title: 'MONDAY MORNING', hint: 'Your phone dey buzz on the mattress. Check am.' },
+    'rent-due': { id: 'rent-due', title: 'RENT IS DUE', hint: 'Mr Adewale dey wait for you for the compound gate. Follow the arrow.' },
+    'voice-note': { id: 'voice-note', title: 'THE VOICE NOTE', hint: 'Mercy Pharmacy dey up the street, right side. Climb the stairs to Dr. Bayo.' },
   },
 
   interactables: {

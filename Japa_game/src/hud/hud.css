@@ -23,14 +23,15 @@ canvas { display: block; }
   transition: transform .2s; }
 
 /* top bar */
-.topbar { position: absolute; left: 12px; right: 12px; top: calc(12px + env(safe-area-inset-top)); display: flex; gap: 8px; flex-wrap: wrap; }
+.topbar { position: absolute; left: 12px; right: 60px; top: calc(12px + env(safe-area-inset-top)); display: flex; gap: 6px; flex-wrap: nowrap; }
+.topbar .sticker { font-size: 15px; padding: 5px 9px 4px; white-space: nowrap; }
 .topbar .money { background: var(--danfo); transform: rotate(-2deg); }
-.topbar .time { background: var(--ink); color: var(--danfo); box-shadow: 3px 3px 0 var(--danfo); font: 400 13px var(--sign); transform: rotate(1.5deg); }
+.topbar .time { background: var(--ink); color: var(--danfo); box-shadow: 3px 3px 0 var(--danfo); font: 400 12px var(--sign); transform: rotate(1.5deg); }
 .topbar .bump { animation: bump .45s; }
 @keyframes bump { 40% { transform: scale(1.18) rotate(-3deg); } }
 
 /* quest strip */
-.quest { position: absolute; left: 12px; top: calc(62px + env(safe-area-inset-top)); max-width: 80vw; background: var(--ink); color: #fff;
+.quest { position: absolute; left: 12px; top: calc(62px + env(safe-area-inset-top)); max-width: calc(100vw - 84px); background: var(--ink); color: #fff;
   border-radius: 10px; padding: 9px 12px 8px 22px; font: 700 14px/1.25 var(--body); box-shadow: 3px 3px 0 var(--danfo); transition: opacity .3s; }
 .quest::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 6px;
   background: repeating-linear-gradient(var(--danfo) 0 5px, var(--ink) 5px 7px); border-radius: 2px; }
@@ -185,7 +186,19 @@ canvas { display: block; }
 .feedback { position: absolute; right: 12px; top: calc(62px + env(safe-area-inset-top)); width: 38px; height: 38px; border-radius: 50%;
   background: #fff; border: 2.5px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); display: grid; place-items: center; font-size: 18px; }
 
-#hud.attract > :not(.title):not(.loading) { display: none; }
+#hud.attract > :not(.title):not(.loading):not(.mute) { display: none; }
 .receipt { top: 42%; }
 .receipt-fb { position: absolute; left: 0; right: 0; bottom: calc(96px + env(safe-area-inset-bottom)); text-align: center; background: none; border: 0;
   color: var(--danfo); font: 700 15px var(--body); text-decoration: underline; text-underline-offset: 3px; }
+
+/* the arrow to your next goal, pinned to the screen edge while the goal is off screen */
+.pointer { position: absolute; width: 0; height: 0; transition: opacity .2s; }
+.pointer .arrow { position: absolute; left: -24px; top: -24px; width: 48px; height: 48px; border-radius: 50%; background: var(--danfo);
+  border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); display: grid; place-items: center; }
+.pointer .arrow svg { display: block; }
+.pointer .dist { position: absolute; left: -30px; top: 28px; width: 60px; text-align: center; font: 800 13px var(--body); color: var(--ink);
+  background: #fff; border: 2px solid var(--ink); border-radius: 7px; padding: 1px 0; }
+
+/* sound: always one tap from mute (PRD Q30) */
+.mute { position: absolute; right: 12px; top: calc(12px + env(safe-area-inset-top)); width: 38px; height: 38px; border-radius: 50%;
+  background: #fff; border: 2.5px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); display: grid; place-items: center; font-size: 17px; z-index: 5; }

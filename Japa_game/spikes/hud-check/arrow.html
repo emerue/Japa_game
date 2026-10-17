@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta name="viewport" content="width=360,initial-scale=1"><link rel="stylesheet" href="../../assets/fonts/fonts.css"><link rel="stylesheet" href="../../src/hud/hud.css"></head>
+<body style="background:#ccc"><script type="module">
+import { createHud } from '../../src/hud/hud.js';
+const dirs = { right: [1, 0], down: [0, 1], left: [-1, 0], downleft: [-10.1, 11.2] };
+const [dx, dz] = dirs[new URLSearchParams(location.search).get('d')];
+const hud = createHud();
+hud.setPointer({ dx, dz, metres: 15, onScreen: false });
+const a = document.querySelector('.pointer .arrow');
+const p = document.querySelector('.pointer'); p.style.left = '180px'; p.style.top = '300px'; p.style.transform = 'scale(4)'; p.style.transition = 'none'; p.style.opacity = '1';
+const svg = a.querySelector('svg');
+document.title = [svg.style.transform, getComputedStyle(svg).transform, getComputedStyle(a).transform, getComputedStyle(p).transform, JSON.stringify(svg.getBoundingClientRect())].join(' | ');
+</script></body></html>

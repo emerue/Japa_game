@@ -42,7 +42,7 @@
 
 export const zone = {
   id: 'ojuelegba-morning',
-  playerStart: /** @type {[number, number]} */ ([-19.5, 16.2]),
+  playerStart: /** @type {[number, number]} */ ([-19.2, 15.4]),
   playerFacing: Math.PI,
 
   street: { halfWidth: 4, pavement: 3.2, length: 70 },
@@ -80,7 +80,7 @@ export const zone = {
 
   /** @type {Spot[]} */
   spots: [
-    { id: 'room-phone', at: [-20.9, 16.6], radius: 1.4 },
+    { id: 'room-phone', at: [-20.9, 16.6], radius: 1.9 },
     { id: 'room-wallet', at: [-18.1, 16.9], radius: 1.3 },
     { id: 'pharmacy-stairs', at: [15.4, -6.6], radius: 1.6 },
   ],
@@ -95,6 +95,9 @@ export const zone = {
       look: { hair: '#15100C', outfit: { White: '#F2B705', LightBlue: '#2E3138', Red_Dark: '#191B1E' } } },
     { id: 'walker-1', model: 'W_Casual', tone: 5, anim: 'Walk', at: [4, 5.4], facing: Math.PI / 2 },
     { id: 'walker-2', model: 'Worker', tone: 3, anim: 'Walk', at: [-28, -5.6], facing: -Math.PI / 2 },
+    // the danfo conductor, hailing passengers at the bus stop
+    { id: 'conductor', model: 'Casual_2', tone: 3, anim: 'Wave', at: [19.4, -4.2], facing: 0.3,
+      look: { hair: 'none', outfit: { White: '#C74742', LightBlue: '#2E3138', Red_Dark: '#191B1E' } } },
   ],
 
   danfos: [
@@ -104,6 +107,13 @@ export const zone = {
   ],
 
   busStop: { x: 21, z: -6.4, sign: 'OJUELEGBA' },
+
+  /** Where the arrow points for each quest: a spot or a person, per scene. */
+  questTargets: /** @type {Record<string, { street?: { spot?: string, person?: string }, office?: { person?: string } }>} */ ({
+    morning: { street: { spot: 'room-phone' } },
+    'rent-due': { street: { person: 'mr-adewale' } },
+    'voice-note': { street: { spot: 'pharmacy-stairs' }, office: { person: 'dr-bayo' } },
+  }),
   posStand: { x: -9.4, z: -5.6 },
 };
 
