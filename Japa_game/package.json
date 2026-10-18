@@ -4,7 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "python3 -m http.server 5173",
-    "test": "node --test"
+    "dev": "python3 -I tools/dev_server.py 5174",
+    "test": "node --test",
+    "budget": "node tools/check_budget.mjs",
+    "check": "node --test && node tools/check_budget.mjs",
+    "deploy": "sh tools/deploy.sh"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

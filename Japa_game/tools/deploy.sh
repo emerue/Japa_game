@@ -6,6 +6,7 @@
 set -eu
 HOST=root@45.77.62.61
 node --test >/dev/null
+node tools/check_budget.mjs | tail -1
 rsync -az --delete \
   --exclude '*.gltf' --exclude '*.test.js' \
   --exclude 'src/game' --exclude 'src/main.js' --exclude 'src/ui' \
