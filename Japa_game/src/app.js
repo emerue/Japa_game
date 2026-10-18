@@ -14,6 +14,7 @@ import { createInput, moveWithCollisions, WALK_SPEED } from './world/movement.js
 import { createHud } from './hud/hud.js';
 import { shareReceipt } from './hud/receipt-image.js';
 import { createAudio } from './audio.js';
+import { track } from './track.js';
 import { naira, clockLabel } from './sim/engine.js';
 
 /** @typedef {import('./sim/types.js').RunState} RunState */
@@ -264,6 +265,8 @@ function syncMarkers(list, t) {
 
 /** @param {Action} action @param {Character | null} who */
 function act(action, who) {
+  if (action.type === 'interact') track('interact', { id: action.id });
+  else if (action.type === 'choose') track('choose', { event: run.openEvent ?? '', option: action.index });
   run = sim.applyAction(run, action);
   actions.push(action);
   save();
@@ -348,6 +351,7 @@ async function interact(t) {
 /** @param {'street' | 'office'} next */
 async function goTo(next) {
   busy = true;
+  track('scene', { to: next });
   await hud.fade(true);
   where = next;
   cam.rig.interior = next === 'office';
@@ -369,6 +373,7 @@ function showReceipt() {
   const ending = sim.ending(run);
   if (!ending) return;
   audio.receipt();
+  track('ending', { stamp: ending.stamp, flags: sim.redFlagsSpotted(run) });
   const code = seed.toString(36).slice(-4).toUpperCase();
   /** @type {[string, string][]} */
   const items = run.receipt.map((l) => [l.text, l.kobo === undefined ? '' : naira(l.kobo)]);
@@ -389,11 +394,13 @@ function showReceipt() {
     onShare: async () => {
       const link = location.origin + location.pathname;
       const text = `My JAPA Receipt: ${ending.stamp}. Red flags spotted: ${sim.redFlagsSpotted(run)}/3. Can you do better? ${link}`;
+      track('share');
       const result = await shareReceipt({ ...receipt, url: location.host }, text);
       if (result === 'saved') hud.caption('Receipt saved to your phone. Post am for your status.');
     },
-    onFeedback: (vibe) => open(`${FEEDBACK_URL}&stamp=${encodeURIComponent(ending.stamp)}&vibe=${vibe}`, '_blank', 'noopener'),
+    onFeedback: (vibe) => { track('feedback', { vibe }); open(`${FEEDBACK_URL}&stamp=${encodeURIComponent(ending.stamp)}&vibe=${vibe}`, '_blank', 'noopener'); },
     onRetry: () => {
+      track('retry');
       try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
       location.reload();
     },
@@ -434,12 +441,17 @@ const begin = () => {
       lines: ['Rent of ₦150,000 is due. You have ₦48,500.', 'Somebody go offer you a visa "shortcut".', 'Spot the red flags. No let them scam you.'],
       button: 'Oya, let\'s go',
     }).then(() => {
+      track('mission');
       opening();
       setTimeout(() => { if (!coachDone) hideCoach = hud.coach(); }, 6200);
     });
     return;
   } else if (run.openEvent) openEvent(null);
 };
+track('visit', {
+  build: BUILD, view: LITE ? 'lite' : '3d', run: run.endingId ? 'ended' : actions.length > 0 ? 'resume' : 'new',
+  from: document.referrer ? new URL(document.referrer).hostname : '', screen: `${screen.width}x${screen.height}`,
+});
 if (run.endingId) showReceipt();
 else {
   busy = true;
@@ -455,9 +467,9 @@ else {
       'Iya Basirat: amala dey, ewedu finish',
       'Femi Net Cafe: browsing ₦500/hr, CV typing available',
     ],
-    view: CAN_3D ? { lite: LITE, onSwitch: () => { try { localStorage.setItem(VIEW_KEY, LITE ? '3d' : 'lite'); } catch { /* ignore */ } location.reload(); } } : null,
-    onStart: () => { busy = false; begin(); },
-    onRestart: () => { try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ } location.search = ''; },
+    view: CAN_3D ? { lite: LITE, onSwitch: () => { track('view-switch'); try { localStorage.setItem(VIEW_KEY, LITE ? '3d' : 'lite'); } catch { /* ignore */ } location.reload(); } } : null,
+    onStart: () => { track('start'); busy = false; begin(); },
+    onRestart: () => { track('restart'); try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ } location.search = ''; },
   });
   if (params.get('start') === '1') document.querySelector('#hud .title .go')?.dispatchEvent(new MouseEvent('click')); // development: skip the title
 }
@@ -497,7 +509,7 @@ const frame = () => {
     const here = zone.buildings.filter((b) => b.place).find((b) => Math.abs(pos.x - b.x) < b.w / 2 + 0.5 && Math.abs(pos.z - (b.z + (b.face * b.d) / 2) - b.face * 2) < 3.2)
       ?? (Math.hypot(pos.x - zone.busStop.x, pos.z - zone.busStop.z) < 3.5 ? { place: zone.busStop.place } : null);
     const name = here?.place ?? '';
-    if (name && name !== lastPlace) hud.place(name, zone.area);
+    if (name && name !== lastPlace) { hud.place(name, zone.area); track('place', { name }); }
     if (name) lastPlace = name;
   }
 

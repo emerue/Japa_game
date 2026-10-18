@@ -7,9 +7,11 @@ set -eu
 HOST=root@45.77.62.61
 node --test >/dev/null
 node tools/check_budget.mjs | tail -1
-rsync -az --delete --chown=root:root \
+rsync -az --delete \
   --exclude '*.gltf' --exclude '*.test.js' \
   --exclude 'src/game' --exclude 'src/main.js' --exclude 'src/ui' \
   --exclude 'src/content/events.js' --exclude 'src/content/index.js' \
   index.html src vendor assets "$HOST:/var/www/japa/"
+# files owned by root (macOS openrsync has no --chown)
+ssh "$HOST" chown -R root:root /var/www/japa
 curl -fsS -o /dev/null https://japa.45-77-62-61.sslip.io/ && echo "Deployed: https://japa.45-77-62-61.sslip.io/"
