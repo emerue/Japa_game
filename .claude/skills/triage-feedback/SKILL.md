@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Turn every tester response into a ranked **backlog**: the issues worth fixing next, highest score first. You are the triage desk: you read, group, score and write. Edit only files under `docs/feedback/`; the game code changes later, when @ikenna picks items from the backlog.
 
-Source: the Tally form **q5ZzW2** ("JAPA tester feedback"), read with the Tally connector's `fetch_submissions`. Questions: how far they got, what confused them, what felt real or fake Lagos, a 1–5 rating for wanting the next part, and phone model. Hidden fields: `build` and `stamp` (the receipt stamp: SCAMMED, SAVED or EXPOSED; empty means they never reached a receipt).
+Source: the Tally form **q5ZzW2** ("JAPA tester feedback"), read with the Tally connector's `fetch_submissions`. Questions: how far they got, what confused them, what felt real or fake Lagos, a 1–5 rating for wanting the next part, and phone model. Hidden fields: `build`, `stamp` (the receipt stamp: SCAMMED, SAVED or EXPOSED; empty means they never reached a receipt) and `vibe` (the one-tap 👍 `up` / 👎 `down` under the receipt; empty if they came from another button).
 
 ## Steps
 
@@ -48,7 +48,7 @@ Source: the Tally form **q5ZzW2** ("JAPA tester feedback"), read with the Tally 
    ...
 
    ## How far testers got
-   Room <n> · Landlord <n> · Office <n> · Receipt <n>. Stamps: SCAMMED <n>, SAVED <n>, EXPOSED <n>. Want the next part: average <x.x>/5.
+   Room <n> · Landlord <n> · Office <n> · Receipt <n>. Stamps: SCAMMED <n>, SAVED <n>, EXPOSED <n>. Vibe: 👍 <n> 👎 <n>. Want the next part: average <x.x>/5.
 
    ## Fixed, watching
    - <issue> (fixed in <build>): <n> reports since, or none
