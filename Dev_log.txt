@@ -31,6 +31,19 @@ Vertical slice                    Live for testers at
                                   receipt picture.
 
 ====================================================================
+SUN 18 OCT 2026: npm fixed, budget check and CI
+====================================================================
+- npm/Python TLS fixed: macOS system roots exported to ~/all-ca.pem;
+  ~/.zshrc sets NODE_EXTRA_CA_CERTS and SSL_CERT_FILE. npm, Python, curl
+  and git all work in a new shell.
+- tools/check_budget.mjs (npm run budget): follows the import graph from
+  index.html, adds fonts and characters, measures gzip as nginx sends it,
+  fails over 3 MB. Today: 1.5 MB in 3D (50%), 0.3 MB in lite.
+- GitHub Actions (.github/workflows/check.yml) runs npm test and the
+  budget on every push to main and every pull request; green in ~15 s.
+  deploy.sh runs both before uploading.
+
+====================================================================
 SAT 17 OCT 2026 (late): build slice-3, 3D back by default
 ====================================================================
 - @ikenna saw the lite view on his phones. Cause: my test link with
