@@ -196,8 +196,8 @@ canvas { display: block; }
 .pointer .arrow { position: absolute; left: -24px; top: -24px; width: 48px; height: 48px; border-radius: 50%; background: var(--danfo);
   border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); display: grid; place-items: center; }
 .pointer .arrow svg { display: block; }
-.pointer .dist { position: absolute; left: -30px; top: 28px; width: 60px; text-align: center; font: 800 13px var(--body); color: var(--ink);
-  background: #fff; border: 2px solid var(--ink); border-radius: 7px; padding: 1px 0; }
+.pointer .dist { position: absolute; left: -30px; top: 30px; white-space: nowrap; text-align: center; font: 800 13px var(--body); color: var(--ink);
+  background: #fff; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 7px; box-shadow: 2px 2px 0 var(--ink); }
 
 /* sound: always one tap from mute (PRD Q30) */
 .mute { position: absolute; right: 12px; top: calc(12px + env(safe-area-inset-top)); width: 38px; height: 38px; border-radius: 50%;
@@ -217,3 +217,35 @@ canvas { display: block; }
   .title .how { font-size: 13px; }
   .title .again, .title .view { margin-top: 6px; }
 }
+
+/* mission card: the first thing a new player reads */
+.mission-wrap { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(25,27,30,.55); pointer-events: auto; animation: dimIn .3s; }
+.mission { width: min(330px, 86vw); background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 6px 6px 0 var(--ink);
+  padding: 18px 18px 16px; transform: rotate(-1deg); animation: stamp .45s cubic-bezier(.3,1.5,.5,1); }
+.mission .kicker { display: inline-block; background: var(--ink); color: var(--danfo); font: 400 12px var(--sign); padding: 4px 8px; border-radius: 6px; }
+.mission h2 { margin: 10px 0 8px; font: 400 32px/1 var(--sign); color: var(--ink); }
+.mission ul { margin: 0 0 14px; padding: 0 0 0 20px; font: 700 16px/1.4 var(--body); color: var(--ink); }
+.mission li { margin: 4px 0; }
+.mission .btn { display: block; width: 100%; }
+
+/* place sticker: where you are */
+.place { position: absolute; left: 50%; top: calc(150px + env(safe-area-inset-top)); transform: translateX(-50%) rotate(-1.5deg); background: var(--danfo);
+  border: 2.5px solid var(--ink); border-radius: 10px; box-shadow: 3px 3px 0 var(--ink); padding: 6px 12px; font: 400 16px var(--sign); color: var(--ink);
+  white-space: nowrap; animation: placeIn .35s cubic-bezier(.2,1.4,.4,1); transition: opacity .4s; }
+.place small { display: block; font: 800 11px var(--body); }
+.place.out { opacity: 0; }
+@keyframes placeIn { 0% { transform: translateX(-50%) translateY(-20px) rotate(-1.5deg); opacity: 0; } }
+
+/* rumour ticker on the title screen */
+.title .ticker { overflow: hidden; margin: -6px 0 16px; background: var(--danfo); border-top: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); }
+.title .ticker div { display: inline-flex; white-space: nowrap; animation: tick 40s linear infinite; }
+.title .ticker span { font: 800 14px var(--body); color: var(--ink); padding: 6px 22px 5px 0; }
+.title .ticker span::before { content: '● '; color: var(--red); }
+@keyframes tick { to { transform: translateX(-50%); } }
+
+/* one-tap feedback under the receipt */
+.vibe { position: absolute; left: 0; right: 0; bottom: calc(96px + env(safe-area-inset-bottom)); display: flex; justify-content: center; align-items: center; gap: 12px; }
+.vibe span { color: #fff; font: 800 16px var(--body); }
+.vibe button { width: 54px; height: 46px; font-size: 24px; background: #fff; border: 2.5px solid var(--ink); border-radius: 12px; box-shadow: 3px 3px 0 var(--danfo); }
+.vibe button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--danfo); }
+.pointer .dist { left: -30px; width: auto; white-space: nowrap; padding: 2px 8px; box-shadow: 2px 2px 0 var(--ink); top: 30px; }

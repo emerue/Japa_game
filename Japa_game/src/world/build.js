@@ -20,6 +20,7 @@ import { makeDanfo } from './danfo.js';
  * @property {THREE.Group} group
  * @property {THREE.Box2[]} colliders Footprints the player can't walk through (x, z).
  * @property {Fadeable[]} fadeables
+ * @property {THREE.Sprite[]} pins Place pins; the game hides the ones between camera and player.
  */
 
 const WALL_T = 0.2;
@@ -46,7 +47,9 @@ export function buildZone(zone) {
   buildRoomInterior(group, collide);
   buildStreetLife(group, zone, collide, fadeables);
   buildSkyline(group);
-  return { group, colliders, fadeables };
+  buildGreenery(group, zone, collide, fadeables);
+  const pins = buildPins(group, zone);
+  return { group, colliders, fadeables, pins };
 }
 
 /**
@@ -55,7 +58,7 @@ export function buildZone(zone) {
  */
 function buildGround(g, zone) {
   const { halfWidth: hw, pavement: pv, length: L } = zone.street;
-  const ground = box(g, [L * 1.6, 0.2, 90], [0, -0.1, 0], mat('#B7A283'));
+  const ground = box(g, [L * 1.6, 0.2, 90], [0, -0.1, 0], mat('#C4B08A'));
   ground.castShadow = false;
   const road = new THREE.Mesh(new THREE.BoxGeometry(L * 1.6, 0.04, hw * 2), new THREE.MeshLambertMaterial({ map: asphaltTexture(L * 1.6, hw * 2) }));
   road.position.set(0, 0.02, 0);
@@ -331,6 +334,94 @@ function buildStreetLife(g, zone, collide, fadeables) {
   collide(14.6, -11.3, 15.8, -7.9);
 }
 
+/**
+ * Round icon pins above every place, readable from across the street.
+ * @param {THREE.Group} g @param {typeof import('./zone.js').zone} zone
+ */
+function buildPins(g, zone) {
+  /** @type {THREE.Sprite[]} */
+  const out = [];
+  // just above the door, in front of the face, where the follow camera can see it
+  const pins = zone.buildings.filter((b) => b.pin).map((b) => ({ pin: /** @type {string} */ (b.pin), x: b.x + (b.doorX ?? 0), z: b.z + b.face * (b.d / 2 + 1.0), y: 2.9 }));
+  pins.push({ pin: zone.busStop.pin, x: zone.busStop.x, z: zone.busStop.z + 0.6, y: 3.5 });
+  for (const p of pins) {
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: pinTexture(p.pin), depthWrite: false }));
+    sprite.position.set(p.x, p.y, p.z);
+    sprite.scale.set(1.15, 1.15, 1);
+    sprite.renderOrder = 2;
+    g.add(sprite);
+    out.push(sprite);
+  }
+  return out;
+}
+
+/** @type {Map<string, THREE.CanvasTexture>} */
+const pinCache = new Map();
+function pinTexture(/** @type {string} */ emoji) {
+  let t = pinCache.get(emoji);
+  if (t) return t;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const x = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+  x.fillStyle = '#191B1E';
+  x.beginPath(); x.arc(68, 68, 56, 0, Math.PI * 2); x.fill(); // hard shadow, sticker style
+  x.fillStyle = '#FFFFFF';
+  x.beginPath(); x.arc(62, 62, 54, 0, Math.PI * 2); x.fill();
+  x.lineWidth = 7; x.strokeStyle = '#191B1E'; x.stroke();
+  x.font = '64px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(emoji, 62, 66);
+  t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  pinCache.set(emoji, t);
+  return t;
+}
+
+/**
+ * Shade trees and palms: Lagos streets are greener than a bare render suggests.
+ * @param {THREE.Group} g @param {typeof import('./zone.js').zone} zone
+ * @param {(x0: number, z0: number, x1: number, z1: number) => void} collide
+ * @param {Fadeable[]} fadeables Trees fade like buildings when they hide the player.
+ */
+function buildGreenery(g, zone, collide, fadeables) {
+  const trunk = mat('#6B4A2E'), leafLight = mat('#5BA84A'), frond = mat('#4E9A3F');
+  for (const [x, z] of zone.trees) {
+    const tree = new THREE.Group();
+    cylinder(tree, 0.14, 0.2, 2.4, [x, 1.2, z], mat('#6B4A2E', { own: true }), 8);
+    const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 0), mat('#3F8A3A', { own: true }));
+    crown.position.set(x, 3.3, z);
+    crown.castShadow = true;
+    tree.add(crown);
+    const top = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 0), mat('#5BA84A', { own: true }));
+    top.position.set(x + 0.4, 4.2, z - 0.2);
+    top.castShadow = true;
+    tree.add(top);
+    g.add(tree);
+    fadeables.push({ group: tree, box: new THREE.Box3(new THREE.Vector3(x - 1.6, 0, z - 1.6), new THREE.Vector3(x + 1.6, 5, z + 1.6)), opacity: 1 });
+    collide(x - 0.25, z - 0.25, x + 0.25, z + 0.25);
+  }
+  for (const [x, z] of zone.palms) {
+    const t = cylinder(g, 0.12, 0.18, 4.6, [x, 2.3, z], trunk, 8);
+    t.rotation.z = 0.06;
+    for (let i = 0; i < 7; i++) {
+      const f = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.06, 2.2), frond);
+      const a = (i / 7) * Math.PI * 2;
+      f.position.set(x + Math.sin(a) * 0.9 + 0.15, 4.5, z + Math.cos(a) * 0.9);
+      f.rotation.set(0.45, a, 0);
+      f.castShadow = true;
+      g.add(f);
+    }
+    collide(x - 0.2, z - 0.2, x + 0.2, z + 0.2);
+  }
+  // flower pots and a bench by the shops
+  for (const [x, z] of [[-1, -7.3], [5.5, -7.3], [-17, -7.3]]) {
+    cylinder(g, 0.3, 0.22, 0.45, [x, 0.22, z], mat('#B85C4A'), 10);
+    const bush = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 0), leafLight);
+    bush.position.set(x, 0.7, z);
+    g.add(bush);
+  }
+}
+
 /** A keke (tricycle taxi): yellow body, black canopy, three wheels. */
 function buildKeke(/** @type {THREE.Group} */ g, /** @type {number} */ x, /** @type {number} */ z, /** @type {(x0: number, z0: number, x1: number, z1: number) => void} */ collide) {
   const k = new THREE.Group();
@@ -400,5 +491,5 @@ export function buildOffice(office) {
   collide(ox + w / 2 - 0.1, oz - d / 2, ox + w / 2 + 1, oz + d / 2);
   collide(ox - w / 2, oz + d / 2 - 0.1, ox + w / 2, oz + d / 2 + 1);
   collide(ox - 1.2, oz - 2.3, ox + 1.2, oz - 1.3);
-  return { group, colliders, fadeables: [] };
+  return { group, colliders, fadeables: [], pins: [] };
 }

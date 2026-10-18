@@ -18,6 +18,8 @@
  * @property {string} [paint] Words painted straight on the wall.
  * @property {boolean} [enterable] The player can walk in; the roof and walls fade.
  * @property {number} [doorX] Door position along the face, relative to x.
+ * @property {string} [pin] Emoji on the round pin above it, so you can read the street from afar.
+ * @property {string} [place] Name shown on the place sticker as you walk past.
  */
 
 /**
@@ -50,27 +52,27 @@ export const zone = {
   /** @type {Building[]} */
   buildings: [
     // --- south side: the compound (rooms in a row, doors facing the yard) ---
-    { id: 'my-room', x: -19.5, z: 15.5, w: 5, d: 4.6, h: 3.1, wall: '#E3C8A8', roof: '#9AA3A8', face: -1, enterable: true, doorX: 0.9 },
+    { id: 'my-room', x: -19.5, z: 15.5, w: 5, d: 4.6, h: 3.1, wall: '#E3C8A8', roof: '#9AA3A8', face: -1, enterable: true, doorX: 0.9, pin: '🏠', place: 'Your room' },
     { id: 'room-2', x: -14.3, z: 15.5, w: 5, d: 4.6, h: 3.1, wall: '#E3C8A8', roof: '#9AA3A8', face: -1, doorX: 0.9 },
     { id: 'room-3', x: -9.1, z: 15.5, w: 5, d: 4.6, h: 3.1, wall: '#E3C8A8', roof: '#8F989D', face: -1, doorX: 0.9 },
     // --- south side, east: shops facing the street ---
-    { id: 'tailor', x: 2, z: 11, w: 7, d: 6, h: 3.6, wall: '#7FA6B5', roof: '#7A3B2E', face: -1,
+    { id: 'tailor', x: 2, z: 11, w: 7, d: 6, h: 3.6, wall: '#7FA6B5', roof: '#7A3B2E', face: -1, pin: '🧵', place: 'God First Fashion',
       signs: [{ text: 'GOD FIRST FASHION', sub: 'TAILORING · ASO-EBI', bg: '#FFF8E7', fg: '#191B1E', accent: '#C74742' }] },
     { id: 'chemist-south', x: 11, z: 11.5, w: 8, d: 7, h: 6.4, wall: '#D98E5F', roof: '#7A3B2E', face: -1, paint: 'THIS HOUSE IS NOT FOR SALE' },
-    { id: 'south-4', x: 21, z: 11, w: 9, d: 6, h: 3.6, wall: '#C9B27C', roof: '#9AA3A8', face: -1,
+    { id: 'south-4', x: 21, z: 11, w: 9, d: 6, h: 3.6, wall: '#C9B27C', roof: '#9AA3A8', face: -1, pin: '✂️', place: 'Blessed Hands Barbing Salon',
       signs: [{ text: 'BLESSED HANDS', sub: 'BARBING SALON · LOW CUT ₦1,500', bg: '#176B6B', fg: '#FFF8E7', accent: '#F2B705' }] },
     { id: 'south-west', x: -31, z: 11, w: 8, d: 6, h: 6.4, wall: '#A8C69F', roof: '#7A3B2E', face: -1 },
     // --- north side, facing the camera ---
-    { id: 'mama-put', x: -20, z: -10.5, w: 9, d: 7, h: 3.6, wall: '#E8D9B5', roof: '#7A3B2E', face: 1,
+    { id: 'mama-put', x: -20, z: -10.5, w: 9, d: 7, h: 3.6, wall: '#E8D9B5', roof: '#7A3B2E', face: 1, pin: '🍲', place: 'Iya Basirat Mama Put',
       signs: [{ text: 'IYA BASIRAT', sub: 'MAMA PUT · RICE · AMALA · SWALLOW', bg: '#C74742', fg: '#FFF8E7', accent: '#F2B705' }] },
-    { id: 'cybercafe', x: -4, z: -10.5, w: 9, d: 7, h: 3.8, wall: '#355D93', roof: '#9AA3A8', face: 1, doorX: 0,
+    { id: 'cybercafe', x: -4, z: -10.5, w: 9, d: 7, h: 3.8, wall: '#355D93', roof: '#9AA3A8', face: 1, doorX: 0, pin: '💻', place: 'Femi Net Cafe',
       signs: [{ text: 'FEMI NET CAFE', sub: 'BROWSING · PRINTING · LAMINATION · CV', bg: '#F2B705', fg: '#191B1E', accent: '#191B1E' }] },
-    { id: 'pharmacy', x: 9.5, z: -11, w: 10, d: 8, h: 6.6, wall: '#F4EBDD', roof: '#7A3B2E', face: 1, doorX: -1.5,
+    { id: 'pharmacy', x: 9.5, z: -11, w: 10, d: 8, h: 6.6, wall: '#F4EBDD', roof: '#7A3B2E', face: 1, doorX: -1.5, pin: '💊', place: 'Mercy Pharmacy · Dr. Bayo upstairs',
       signs: [
         { text: 'MERCY PHARMACY', sub: 'DRUGS · PROVISIONS · NHIS', bg: '#2F7D3B', fg: '#FFFFFF', accent: '#F4EBDD', y: 2.9 },
         { text: 'DR. BAYO VISA CONSULT', sub: '100% GUARANTEED · UK · CANADA · USA', bg: '#191B1E', fg: '#F2B705', accent: '#FFFFFF', y: 5.6, w: 9 },
       ] },
-    { id: 'north-east', x: 24, z: -11, w: 9, d: 7, h: 3.6, wall: '#B85C4A', roof: '#9AA3A8', face: 1,
+    { id: 'north-east', x: 24, z: -11, w: 9, d: 7, h: 3.6, wall: '#B85C4A', roof: '#9AA3A8', face: 1, pin: '🔧', place: 'Jesus Is Lord Spare Parts',
       signs: [{ text: 'JESUS IS LORD', sub: 'SPARE PARTS · OKADA · KEKE', bg: '#FFF8E7', fg: '#355D93', accent: '#C74742' }] },
     { id: 'north-west', x: -34, z: -11, w: 9, d: 7, h: 6.4, wall: '#C9B27C', roof: '#7A3B2E', face: 1 },
   ],
@@ -106,13 +108,20 @@ export const zone = {
     { at: /** @type {[number, number]} */ ([-16, 2.3]), facing: -Math.PI / 2 },
   ],
 
-  busStop: { x: 21, z: -6.4, sign: 'OJUELEGBA' },
+  busStop: { x: 21, z: -6.4, sign: 'OJUELEGBA', pin: '🚌', place: 'Ojuelegba Bus Stop' },
+
+  /** The area name on the first place sticker. */
+  area: 'Ojuelegba · Surulere',
+
+  /** Shade trees along the pavements: [x, z]. */
+  trees: /** @type {[number, number][]} */ ([[-27, 7.4], [-3, 7.4], [8, 7.6], [30, 7.4], [-28, -7.6], [3, -7.4], [33, -7.6], [-12, -7.6]]),
+  palms: /** @type {[number, number][]} */ ([[-24.5, 19.6], [17, 7.8], [-36, -7.4]]),
 
   /** Where the arrow points for each quest: a spot or a person, per scene. */
-  questTargets: /** @type {Record<string, { street?: { spot?: string, person?: string }, office?: { person?: string } }>} */ ({
-    morning: { street: { spot: 'room-phone' } },
-    'rent-due': { street: { person: 'mr-adewale' } },
-    'voice-note': { street: { spot: 'pharmacy-stairs' }, office: { person: 'dr-bayo' } },
+  questTargets: /** @type {Record<string, { street?: { spot?: string, person?: string, label: string }, office?: { person?: string, label: string } }>} */ ({
+    morning: { street: { spot: 'room-phone', label: 'Your phone' } },
+    'rent-due': { street: { person: 'mr-adewale', label: 'Mr Adewale' } },
+    'voice-note': { street: { spot: 'pharmacy-stairs', label: 'Mercy Pharmacy' }, office: { person: 'dr-bayo', label: 'Dr. Bayo' } },
   }),
   posStand: { x: -9.4, z: -5.6 },
 };

@@ -31,6 +31,28 @@ Vertical slice                    Live for testers at
                                   receipt picture.
 
 ====================================================================
+SUN 18 OCT 2026 (late morning): first-time experience, build slice-4
+====================================================================
+Studied Lagos Life on the test phone (logged in as @ikenna; looked only,
+no purchases or chat). What makes its first minutes work: icon pins on
+every place, a goal banner with one button, a place card ("Polanco
+Motors · 237 here"), side goals (needs, gem hunt), a phone hub, bright
+daylight. Its weak spot: sign-up and cookie walls before play; JAPA keeps
+play-in-5-seconds.
+
+Built (slice-4), checked on the phone:
+- Mission card at the start: "Survive Monday" in three lines.
+- Labelled arrow ("Your phone · 22 m"), label kept clear of the joystick.
+- Icon pins above shop doors (🏠 🧵 ✂️ 🍲 💻 💊 🔧 🚌); pins between the
+  camera and the player hide. Place sticker as you reach a shop
+  ("Ojuelegba · Surulere / Femi Net Cafe").
+- Sunny morning: blue sky, brighter sun, trees and palms that fade when
+  they hide the player, potted plants.
+- Rumour ticker on the title screen.
+- One-tap 👍/👎 under the receipt; opens the Tally form with a new
+  hidden field "vibe" filled in.
+
+====================================================================
 SUN 18 OCT 2026: npm fixed, budget check and CI
 ====================================================================
 - npm/Python TLS fixed: macOS system roots exported to ~/all-ca.pem;

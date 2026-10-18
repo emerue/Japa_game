@@ -133,7 +133,7 @@ export function createHud() {
      * The arrow to the current goal, pinned to the screen edge while the goal is off screen.
      * The camera never turns (PRD Q21), so a direction on the ground maps straight onto
      * the screen: +x is right, +z is down.
-     * @param {{ dx: number, dz: number, metres: number, onScreen: boolean } | null} goal
+     * @param {{ dx: number, dz: number, metres: number, onScreen: boolean, label?: string } | null} goal
      */
     setPointer(goal) {
       if (!goal || goal.onScreen || goal.metres < 2) { pointer.style.opacity = '0'; return; }
@@ -146,7 +146,11 @@ export function createHud() {
       pointer.style.top = `${cy + uy * k}px`;
       // the arrow is drawn pointing right (+x), so rotate by the plain angle
       /** @type {HTMLElement} */ (pointer.querySelector('svg')).style.transform = `rotate(${Math.atan2(uy, ux)}rad)`;
-      /** @type {HTMLElement} */ (pointer.lastElementChild).textContent = `${Math.round(goal.metres)} m`;
+      /** @type {HTMLElement} */ (pointer.lastElementChild).textContent = goal.label ? `${goal.label} · ${Math.round(goal.metres)} m` : `${Math.round(goal.metres)} m`;
+      // keep the label inside the screen when the arrow sits on a side edge
+      const lab = /** @type {HTMLElement} */ (pointer.lastElementChild);
+      lab.style.left = `${ux > 0.5 ? -lab.offsetWidth + 26 : ux < -0.5 ? -26 : -lab.offsetWidth / 2}px`;
+      lab.style.top = uy > 0.3 ? '-58px' : '30px'; // above the arrow near the bottom, clear of the joystick
       pointer.style.opacity = '1';
     },
 
@@ -284,7 +288,7 @@ export function createHud() {
 
     /**
      * @param {{ stamp: string, good: boolean, lesson: string, rows: [string, string][], items: [string, string][], code: string }} r
-     * @param {{ onShare: () => void, onRetry: () => void, onFeedback?: () => void }} handlers
+     * @param {{ onShare: () => void, onRetry: () => void, onFeedback?: (vibe: 'up' | 'down') => void }} handlers
      */
     showReceipt(r, handlers) {
       const wrap = el('div');
@@ -303,9 +307,9 @@ export function createHud() {
       retry.addEventListener('click', handlers.onRetry);
       wrap.appendChild(actions);
       if (handlers.onFeedback) {
-        const fb = el('button', 'link receipt-fb', 'Tell us what you think');
-        fb.setAttribute('type', 'button');
-        fb.addEventListener('click', handlers.onFeedback);
+        // one tap first; the tap opens the short form with the answer already filled in
+        const fb = el('div', 'vibe', '<span>How was it?</span><button type="button" data-v="up" aria-label="I liked it">👍</button><button type="button" data-v="down" aria-label="I didn\'t like it">👎</button>');
+        fb.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => handlers.onFeedback?.(/** @type {'up' | 'down'} */ (b.dataset.v))));
         wrap.appendChild(fb);
       }
       root.appendChild(wrap);
@@ -333,12 +337,13 @@ export function createHud() {
     /**
      * The title screen over the live street.
      * @param {{ resume: boolean, onStart: () => void, onRestart: () => void, feedbackUrl: string | null,
-     *   view: { lite: boolean, onSwitch: () => void } | null }} t `view` is null when only lite can run.
+     *   view: { lite: boolean, onSwitch: () => void } | null, ticker?: string[] }} t `view` is null when only lite can run.
      */
     showTitle(t) {
       const title = el('div', 'title', `
         <div class="panel"><div class="rivets"><i></i><i></i><i></i></div><h1>JAPA</h1><div class="stripes"></div></div>
         <div class="words"><p>Everybody get plan. Wetin your own go cost you?</p></div>
+        ${t.ticker?.length ? `<div class="ticker" aria-hidden="true"><div>${[...t.ticker, ...t.ticker].map((x) => `<span>${esc(x)}</span>`).join('')}</div></div>` : ''}
         <button class="go" type="button">${t.resume ? 'Continue your Monday' : 'Start your Monday'}</button>
         ${t.resume ? '<button class="link again" type="button">Start again from 6:43am</button>' : ''}
         <div class="row2"><div class="how">Drag the left side to walk.<br>Tap the yellow button to talk, read or enter.</div>
@@ -351,6 +356,31 @@ export function createHud() {
       title.querySelector('.fb')?.addEventListener('click', () => open(/** @type {string} */ (t.feedbackUrl), '_blank', 'noopener'));
       title.querySelector('.view')?.addEventListener('click', () => t.view?.onSwitch());
       return close;
+    },
+
+    /**
+     * The mission card at the start of a new Monday: what you're trying to do, in three lines.
+     * @param {{ kicker: string, title: string, lines: string[], button: string }} m
+     * @returns {Promise<void>} Resolves when the player taps the button.
+     */
+    mission(m) {
+      return new Promise((done) => {
+        const wrap = el('div', 'mission-wrap');
+        wrap.dataset.ui = '';
+        wrap.innerHTML = `<div class="mission"><div class="kicker">${esc(m.kicker)}</div><h2>${esc(m.title)}</h2>
+          <ul>${m.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul><button class="btn" type="button">${esc(m.button)}</button></div>`;
+        root.appendChild(wrap);
+        /** @type {HTMLElement} */ (wrap.querySelector('button')).addEventListener('click', () => { wrap.remove(); done(); });
+      });
+    },
+
+    /** A place sticker that slides in when you reach somewhere new. @param {string} name @param {string} [sub] */
+    place(name, sub) {
+      document.querySelectorAll('#hud .place').forEach((p) => p.remove());
+      const p = el('div', 'place', `${sub ? `<small>${esc(sub)}</small>` : ''}${esc(name)}`);
+      root.appendChild(p);
+      setTimeout(() => p.classList.add('out'), 2600);
+      setTimeout(() => p.remove(), 3100);
     },
 
     /** A one-time hint by the joystick until the player first moves. */

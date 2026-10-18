@@ -34,7 +34,7 @@ const hud = createHud();
 const audio = createAudio();
 hud.muteButton(audio.muted, () => audio.toggleMute());
 // Tester feedback (Tally form q5ZzW2); the build and receipt stamp ride along as hidden fields.
-const BUILD = 'slice-3';
+const BUILD = 'slice-4';
 const loadingScreen = hud.loading([
   'Traffic dey Ojuelegba. Lagos dey load…',
   'Mr Adewale don wake up. E dey wait.',
@@ -70,8 +70,8 @@ const liteCanvas = document.createElement('canvas');
 if (LITE) document.body.prepend(liteCanvas);
 
 const scene = new THREE.Scene();
-scene.background = skyTexture(); // harmattan morning haze
-scene.fog = new THREE.Fog('#F3D9B6', 40, 115);
+scene.background = skyTexture(); // a bright Lagos morning
+scene.fog = new THREE.Fog('#EDE6D2', 55, 130);
 
 /** A vertical gradient sky: warm dust overhead, pale haze at the horizon. */
 function skyTexture() {
@@ -79,9 +79,9 @@ function skyTexture() {
   c.width = 4; c.height = 256;
   const g = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
   const grad = g.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0, '#D9A878');
-  grad.addColorStop(0.55, '#EDC9A0');
-  grad.addColorStop(1, '#F6E2C4');
+  grad.addColorStop(0, '#6FB2E8');
+  grad.addColorStop(0.55, '#B9DCF3');
+  grad.addColorStop(1, '#F4E9CF');
   g.fillStyle = grad;
   g.fillRect(0, 0, 4, 256);
   const t = new THREE.CanvasTexture(c);
@@ -94,8 +94,8 @@ addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer?.setSize(innerWidth, innerHeight);
 });
-scene.add(new THREE.HemisphereLight('#FFF4E0', '#8A6A4A', 1.5));
-const sun = new THREE.DirectionalLight('#FFE2B8', 2.3);
+scene.add(new THREE.HemisphereLight('#F4FAFF', '#A08A64', 1.75));
+const sun = new THREE.DirectionalLight('#FFF0D8', 2.7);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
 Object.assign(sun.shadow.camera, { left: -18, right: 18, top: 18, bottom: -18, near: 1, far: 80 });
@@ -195,6 +195,7 @@ function questTargetPosition() {
   const quest = where === 'office' && run.quests['voice-note'] === 'active' ? sliceContent.quests['voice-note'] : sim.currentQuest(run);
   const t = quest && zone.questTargets[quest.id]?.[where];
   if (!t) return null;
+  goalLabel = t.label;
   if ('person' in t && t.person) {
     const p = people.find((q) => q.spec.id === t.person);
     return p ? p.char.root.position.clone().setY(1.6) : null;
@@ -202,6 +203,7 @@ function questTargetPosition() {
   const spot = 'spot' in t && t.spot ? zone.spots.find((sp) => sp.id === t.spot) : null;
   return spot ? new THREE.Vector3(spot.at[0], 1, spot.at[1]) : null;
 }
+let goalLabel = '';
 
 // ---------- interactions ----------
 /**
@@ -390,7 +392,7 @@ function showReceipt() {
       const result = await shareReceipt({ ...receipt, url: location.host }, text);
       if (result === 'saved') hud.caption('Receipt saved to your phone. Post am for your status.');
     },
-    onFeedback: () => open(`${FEEDBACK_URL}&stamp=${encodeURIComponent(ending.stamp)}`, '_blank', 'noopener'),
+    onFeedback: (vibe) => open(`${FEEDBACK_URL}&stamp=${encodeURIComponent(ending.stamp)}&vibe=${vibe}`, '_blank', 'noopener'),
     onRetry: () => {
       try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
       location.reload();
@@ -401,9 +403,9 @@ function showReceipt() {
 // ---------- the opening beat (new runs only) ----------
 function opening() {
   busy = true;
-  hud.caption('₦48,500 for your name. Rent: ₦150,000.', 'MONDAY · 6:43AM', 3200);
-  setTimeout(() => { roomLight.intensity = 0; hud.caption('NEPA don take light.', undefined, 2200); }, 3400);
-  setTimeout(() => { hud.caption('Somebody don on generator. Your phone dey buzz.', undefined, 2600); audio.startGenerator(); audio.buzz(); busy = false; }, 5800);
+  roomLight.intensity = 0;
+  hud.caption('NEPA don take light.', undefined, 2000);
+  setTimeout(() => { hud.caption('Somebody don on generator. Your phone dey buzz.', undefined, 2600); audio.startGenerator(); audio.buzz(); busy = false; }, 2200);
 }
 
 // ---------- the frame loop ----------
@@ -425,8 +427,17 @@ const begin = () => {
   cam.snap(where === 'office' && cam.rig.roomCentre ? cam.rig.roomCentre : pos);
   if (FEEDBACK_URL) hud.feedbackButton(FEEDBACK_URL);
   if (actions.length === 0) {
-    opening();
-    setTimeout(() => { if (!coachDone) hideCoach = hud.coach(); }, 6200);
+    busy = true;
+    hud.mission({
+      kicker: 'MONDAY · 6:43AM · OJUELEGBA',
+      title: 'Survive Monday',
+      lines: ['Rent of ₦150,000 is due. You have ₦48,500.', 'Somebody go offer you a visa "shortcut".', 'Spot the red flags. No let them scam you.'],
+      button: 'Oya, let\'s go',
+    }).then(() => {
+      opening();
+      setTimeout(() => { if (!coachDone) hideCoach = hud.coach(); }, 6200);
+    });
+    return;
   } else if (run.openEvent) openEvent(null);
 };
 if (run.endingId) showReceipt();
@@ -436,6 +447,14 @@ else {
   hud.showTitle({
     resume: actions.length > 0,
     feedbackUrl: FEEDBACK_URL,
+    ticker: [
+      'Tobi: "My guy fit get you UK visa in 2 weeks"',
+      'Fuel don cost again for Ojuelegba',
+      'Mr Adewale dey find tenant wey owe',
+      'NEPA: light go come by 6pm (dem talk am yesterday too)',
+      'Iya Basirat: amala dey, ewedu finish',
+      'Femi Net Cafe: browsing ₦500/hr, CV typing available',
+    ],
     view: CAN_3D ? { lite: LITE, onSwitch: () => { try { localStorage.setItem(VIEW_KEY, LITE ? '3d' : 'lite'); } catch { /* ignore */ } location.reload(); } } : null,
     onStart: () => { busy = false; begin(); },
     onRestart: () => { try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ } location.search = ''; },
@@ -447,6 +466,7 @@ const clock = new THREE.Clock();
 let slowFrames = 0;
 let lastSave = 0;
 const facing = new THREE.Quaternion();
+let lastPlace = 'Your room'; // the mission card already says where you are
 const frame = () => {
   const dt = Math.min(clock.getDelta(), 0.1);
 
@@ -472,6 +492,15 @@ const frame = () => {
   hud.setAction(near && { verb: near.verb, label: near.label }, () => near && interact(near));
   if (input.takeInteract() && near) interact(near);
 
+  // where you are: a place sticker when you reach somewhere new
+  if (!attract && !busy && where === 'street') {
+    const here = zone.buildings.filter((b) => b.place).find((b) => Math.abs(pos.x - b.x) < b.w / 2 + 0.5 && Math.abs(pos.z - (b.z + (b.face * b.d) / 2) - b.face * 2) < 3.2)
+      ?? (Math.hypot(pos.x - zone.busStop.x, pos.z - zone.busStop.z) < 3.5 ? { place: zone.busStop.place } : null);
+    const name = here?.place ?? '';
+    if (name && name !== lastPlace) hud.place(name, zone.area);
+    if (name) lastPlace = name;
+  }
+
   // street life: walkers pace the pavements
   for (const p of people) {
     if (p.spec.anim === 'Walk' && !p.office) {
@@ -495,6 +524,8 @@ const frame = () => {
     walls: where === 'street' ? street.fadeables.map((f) => f.box) : [],
   });
   if (where === 'street' && !lite) cam.fade(dt, street.fadeables, head);
+  // pins between the camera and you would fill the screen: show only those level with you or beyond
+  for (const pin of street.pins) pin.visible = !attract && where === 'street' && pin.position.z < pos.z + 1.5;
   if (attract) {
     // establishing shot: drift along the street, looking at the shopfronts and their signs
     const x = -22 + ((clock.elapsedTime * 1.2) % 44);
@@ -512,7 +543,7 @@ const frame = () => {
   if (goal) {
     const p = toScreen(goal);
     const onScreen = p !== null && p.x > 40 && p.x < innerWidth - 40 && p.y > 160 && p.y < innerHeight - 200;
-    hud.setPointer({ dx: goal.x - pos.x, dz: goal.z - pos.z, metres: Math.hypot(goal.x - pos.x, goal.z - pos.z), onScreen });
+    hud.setPointer({ dx: goal.x - pos.x, dz: goal.z - pos.z, metres: Math.hypot(goal.x - pos.x, goal.z - pos.z), onScreen, label: goalLabel });
   } else hud.setPointer(null);
   if (renderer) renderer.render(scene, camera);
   else lite?.render(liteFrame(all, attract ? drift : pos));
