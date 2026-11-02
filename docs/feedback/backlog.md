@@ -1,19 +1,19 @@
 # JAPA backlog from tester feedback
 
-Responses read: 1 (1 new) · Last run: 2026-10-17 · Builds: slice-1
+Responses read: 2 (1 new) · Last run: 2026-11-02 · Builds: slice-1, slice-4
 
 ## Ranked issues
-### 1. No idea where to go after the landlord — score 2.50
-Reach 1/1 · Impact blocker · Effort M · Stage landlord
-> "i don't understand where to go"
-Files: `Japa_game/src/app.js`, `Japa_game/src/hud/hud.js`, `Japa_game/src/hud/hud.css`, `Japa_game/src/content/slice.js`, `Japa_game/src/world/zone.js`
-Proposed fix: point the way to the current quest's target: an arrow at the screen edge (with distance) toward Mercy Pharmacy's stairs or the next person, plus quest hints that say the direction ("Walk right along the street to Mercy Pharmacy"). The tester stopped at the landlord, so the gap is between the gate and the street.
+None. Both responses are accounted for: one is only praise (slice-4), and the only issue raised (slice-1) was fixed in slice-2 and slice-4, so it sits under "Fixed, watching".
 
 ## How far testers got
-Room 0 · Landlord 1 · Office 0 · Receipt 0. Stamps: none yet. Want the next part: average 4.0/5.
+Room 0 · Landlord 1 · Office 0 · Receipt 1. Stamps: SCAMMED 1, SAVED 0, EXPOSED 0. Vibe: 👍 1 👎 0. Want the next part: average 4.0/5.
+
+## Fixed, watching
+- No idea where to go after the landlord (fixed in slice-2, follow-up in slice-4): 0 reports since. The only report ("i don't understand where to go") came from a slice-1 build, before both fixes. The slice-4 tester reached a receipt.
 
 ## What's working
-- The setting: "the place felt real"
+- The setting: "the place felt real" (slice-1)
+- A slice-4 tester reached the JAPA Receipt (SCAMMED), gave it 👍 and rated wanting the next part 4/5; no confusion reported.
 
 ## Phones
-Not given: 1
+iPhone: 1 · Not given: 1
